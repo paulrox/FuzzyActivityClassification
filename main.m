@@ -28,15 +28,49 @@ hold off;
 global sensor;
 global timestamps;
 
-sensor = cell(1,3);
-timestamps = cell(4,10);
+sensor = cell(3,3);
+timestamps = cell(3,1);
 
+% Time interval: 162 seconds.
 for i=1:4
     for j=1:10
-        sensor{1} = [sensor{1} data{i,j}(:,1)];
-        sensor{2} = [sensor{2} data{i,j}(:,2)];
-        sensor{3} = [sensor{3} data{i,j}(:,3)];
-        timestamps{i,j} = [timestamps{i,j} data{i,j}(:,4)];
+        sensor{1,1} = [sensor{1,1} data{i,j}(:,1)];
+        sensor{1,2} = [sensor{1,2} data{i,j}(:,2)];
+        sensor{1,3} = [sensor{1,3} data{i,j}(:,3)];
+        timestamps{1} = [timestamps{1} data{i,j}(:,4)];
+    end;
+end;
+
+% Time interval: 82 seconds.
+for i=1:4
+    for j=1:10
+        sensor{2,1} = [sensor{2,1} data{i,j}(1:1000,1) ...
+                       data{i,j}(1001:2000,1)];
+        sensor{2,2} = [sensor{2,2} data{i,j}(1:1000,2) ...
+                       data{i,j}(1001:2000,2)];
+        sensor{2,3} = [sensor{2,3} data{i,j}(1:1000,3) ...
+                       data{i,j}(1001:2000,3)];
+        timestamps{2} = [timestamps{2} data{i,j}(1:1000,4) ...
+                         data{i,j}(1001:2000,4)-data{i,j}(1001,4)];
+    end;
+end;
+
+% Time interval: 41 seconds.
+for i=1:4
+    for j=1:10
+        sensor{3,1} = [sensor{3,1} data{i,j}(1:500,1) ...
+                       data{i,j}(501:1000,1) data{i,j}(1001:1500,1) ...
+                       data{i,j}(1501:2000,1)];
+        sensor{3,2} = [sensor{3,2} data{i,j}(1:500,2) ...
+                       data{i,j}(501:1000,2) data{i,j}(1001:1500,2) ...
+                       data{i,j}(1501:2000,2)];
+        sensor{3,3} = [sensor{3,3} data{i,j}(1:500,3) ...
+                       data{i,j}(501:1000,3) data{i,j}(1001:1500,3) ...
+                       data{i,j}(1501:2000,3)];
+        timestamps{3} = [timestamps{3} data{i,j}(1:500,4) ...
+                         data{i,j}(501:1000,4)-data{i,j}(501,4) ...
+                         data{i,j}(1001:1500,4)-data{i,j}(1001,4) ...
+                         data{i,j}(1501:2000,4)-data{i,j}(1501,4)];
     end;
 end;
 
@@ -46,21 +80,25 @@ end;
 %% Features extraction
 % ----Variance----
 
-feat_variance = cell(1,3);
+feat_variance = cell(3,3);
 
-for i=1:3
-    for j=1:40
-        feat_variance{i} = [feat_variance{i} var(sensor{i}(:,j))];
+for k=1:3
+    for i=1:3
+        for j=1:20*2^k
+            feat_variance{k,i} = [feat_variance{k,i} var(sensor{k,i}(:,j))];
+        end;
     end;
 end;
 
 % ----Mean Value----
 
-feat_mean = cell(1,3);
+feat_mean = cell(3,3);
 
-for i=1:3
-    for j=1:40
-        feat_mean{i} = [feat_mean{i} mean(sensor{i}(:,j))];
+for k=1:3
+    for i=1:3
+        for j=1:20*2^k
+            feat_mean{k,i} = [feat_mean{k,i} mean(sensor{k,i}(:,j))];
+        end;
     end;
 end;
 
@@ -70,47 +108,57 @@ end;
 % instants to discover the interval from a crossing to the next one.
 % Finally we compute the variance on that intervals and we use that as
 % feature.
+% For the moment we skip the signals from the first activity of the first
+% volunteer beacuse the timestamps are messed up.
+feat_midcross = cell(3,3);
 
-feat_midcross_var = cell(1,3);
+for k=1:3
+    for i=1:3
+        for j=1:20*2^k
+            if (j==2^k)
+                feat_midcross{k,i} = [feat_midcross{k,i} NaN];
+            else
+                feat_midcross{k,i} = [feat_midcross{k,i} ...
+                    var(diff(midcross(sensor{k,i}(:,j), ...
+                    timestamps{k}(:,j))))];
+            end;
+        end;
+    end;
+end;
 
-for i=1:3
-    for j=1:40
-        if (j==2)
-            feat_midcross_var{i} = [feat_midcross_var{i} NaN];
-        else
-        feat_midcross_var{i} = [feat_midcross_var{i} ...
-            var(diff(midcross(sensor{i}(:,j), ...
-            timestamps{ceil(j/10),mod(j,10) + 10*(mod(j,10)==0)})))];
+% Replace NaNs with the mean value.
+
+midcross_sub = cell(1,4);
+
+% Compute the mean of the numeric values.
+for k=1:3
+    for i=1:3
+        for j=1:4
+            midcross_sub{j} = feat_midcross{k,i}((5*2^k)*(j-1)+1:(5*2^k)*j);
+            notNaN = midcross_sub{j}(~isnan(midcross_sub{j}));
+            notNaN_mean = mean(notNaN);
+            midcross_sub{j}(isnan(midcross_sub{j})) = notNaN_mean;
+            % Substitute all the NaNs with the mean value.
+            feat_midcross{k,i}((5*2^k)*(j-1)+1:(5*2^k)*j) = midcross_sub{j};
         end;
     end;
 end;
 
 % ----Similarity of Signals patterns----
+% In practice, we compare the first half of the signal with the second half
+% and we take the distance between them.
 
-feat_dtw = cell(1,3);
+feat_dtw = cell(3,3);
 
-for i=1:3
-    for j=1:40
-        feat_dtw{i} = [feat_dtw{i} dtw(sensor{i}(1:1000,j),...
-            sensor{i}(1001:2000,j))];
-     end;
-end;
-
-%% Replace NaNs with the mean value.
-
-midcross_sub = cell(1,4);
-
-% Compute the mean of the numeric values.
-for i=1:3
-    for j=1:4
-        midcross_sub{j} = feat_midcross_var{i}(10*(j-1)+1:10*j);
-        notNaN = midcross_sub{j}(~isnan(midcross_sub{j}));
-        notNaN_mean = mean(notNaN);
-        midcross_sub{j}(isnan(midcross_sub{j})) = notNaN_mean;
-        % Substitute all the NaNs with the mean value.
-        feat_midcross_var{i}(10*(j-1)+1:10*j) = midcross_sub{j};
+for k=1:3
+    for i=1:3
+        for j=1:20*2^k
+            feat_dtw{k,i} = [feat_dtw{k,i} dtw(sensor{k,i}(1:1000/2^(k-1),j),...
+                sensor{k,i}(1000/2^(k-1)+1:2000/2^(k-1),j))];
+        end;
     end;
 end;
+
 %% Build the target vectors for the sensors.
 % The target vectors will be the same for all sensors. We have 4 possible
 % activites, so each target vector will be a four elements vector in which
@@ -122,11 +170,19 @@ end;
 % 4 - stairs climbing.
 
 global pat_targets;
-           
-pat_targets = [ones(1,10) zeros(1,10) zeros(1,10) zeros(1,10);
-               zeros(1,10) ones(1,10) zeros(1,10) zeros(1,10);
-               zeros(1,10) zeros(1,10) ones(1,10) zeros(1,10);
-               zeros(1,10) zeros(1,10) zeros(1,10) ones(1,10)];
+
+pat_targets = cell(3,1);
+
+for k=1:3
+    pat_targets{k} = [ones(1,5*2^k) zeros(1,5*2^k) zeros(1,5*2^k) ...
+                      zeros(1,5*2^k);
+                      zeros(1,5*2^k) ones(1,5*2^k) zeros(1,5*2^k) ...
+                      zeros(1,5*2^k);
+                      zeros(1,5*2^k) zeros(1,5*2^k) ones(1,5*2^k) ...
+                      zeros(1,5*2^k);
+                      zeros(1,5*2^k) zeros(1,5*2^k) zeros(1,5*2^k) ...
+                      ones(1,5*2^k)];
+end;
 
 
            
@@ -134,28 +190,32 @@ pat_targets = [ones(1,10) zeros(1,10) zeros(1,10) zeros(1,10);
 
 global pat_net;
 
-pat_net = patternnet(10);
-pat_net.divideParam.trainRatio = 70/100;
-pat_net.divideParam.valRatio = 15/100;
-pat_net.divideParam.testRatio = 15/100;
+pat_net = cell(3,1);
 
-net_in = cell(1,3);
+for k=1:3
+    pat_net{k} = patternnet(10);
+    pat_net{k}.divideParam.trainRatio = 70/100;
+    pat_net{k}.divideParam.valRatio = 15/100;
+    pat_net{k}.divideParam.testRatio = 15/100;
 
-net_in{1} = [feat_dtw{1};
-          feat_midcross_var{1};
-          feat_variance{1}
-          feat_mean{1}];
-net_in{2} = [feat_dtw{2};
-          feat_midcross_var{2};
-          feat_variance{2}
-          feat_mean{2}];
-net_in{3} = [feat_dtw{3};
-          feat_midcross_var{3};
-          feat_variance{3}
-          feat_mean{3}];
+    net_in = cell(1,3);
+
+    net_in{1} = [feat_dtw{k,1};
+                feat_midcross{k,1};
+                feat_variance{k,1}
+                feat_mean{k,1}];
+    net_in{2} = [feat_dtw{k,2};
+                feat_midcross{k,2};
+                feat_variance{k,2}
+                feat_mean{k,2}];
+    net_in{3} = [feat_dtw{k,3};
+                feat_midcross{k,3};
+                feat_variance{k,3}
+                feat_mean{k,3}];
  
-pat_net = train(pat_net,net_in{3},pat_targets);
+    pat_net{k} = train(pat_net{k},net_in{3},pat_targets{k});
 
+end;
 
 %% We select 4 clusters from the dataset and we use them as features.
 
