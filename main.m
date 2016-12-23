@@ -14,12 +14,12 @@ load('data.mat');
 % At first we plot the different activities by the first sensor on the
 % first volunteer.
 
-plot(data{1,1}(:,4),data{1,1}(:,1));
-hold on;
-plot(data{2,1}(:,4),data{2,1}(:,1));
-plot(data{3,1}(:,4),data{3,1}(:,1));
-plot(data{4,1}(:,4),data{4,1}(:,1));
-hold off;
+% plot(data{1,1}(:,4),data{1,1}(:,1));
+% hold on;
+% plot(data{2,1}(:,4),data{2,1}(:,1));
+% plot(data{3,1}(:,4),data{3,1}(:,1));
+% plot(data{4,1}(:,4),data{4,1}(:,1));
+% hold off;
 
 %% Separate Data (each sensor is considered as an indipendent dataset)
 % We divide the data by putting each sensor output for each volunteer in a
@@ -80,6 +80,10 @@ end;
 %% Features extraction
 % ----Variance----
 
+global features_raw;
+
+features_raw = cell(4,1);
+
 feat_variance = cell(3,3);
 
 for k=1:3
@@ -89,6 +93,8 @@ for k=1:3
         end;
     end;
 end;
+
+features_raw{1} = feat_variance;
 
 % ----Mean Value----
 
@@ -101,6 +107,8 @@ for k=1:3
         end;
     end;
 end;
+
+features_raw{2} = feat_mean;
 
 % ----Mid-crossing----
 % The function midcross stores the time instants in which the signals
@@ -144,6 +152,8 @@ for k=1:3
     end;
 end;
 
+features_raw{3} = feat_midcross;
+
 % ----Similarity of Signals patterns----
 % In practice, we compare the first half of the signal with the second half
 % and we take the distance between them.
@@ -155,6 +165,22 @@ for k=1:3
         for j=1:20*2^k
             feat_dtw{k,i} = [feat_dtw{k,i} dtw(sensor{k,i}(1:1000/2^(k-1),j),...
                 sensor{k,i}(1000/2^(k-1)+1:2000/2^(k-1),j))];
+        end;
+    end;
+end;
+
+features_raw{4} = feat_dtw;
+
+%% Features Normalization
+
+features = features_raw;
+
+for i=1:4
+    for k=1:3
+        for j=1:3
+            feat_m =  mean(features_raw{i}{k,j});
+            feat_std = std(features_raw{i}{k,j});
+            features{i}{k,j} = (features_raw{i}{k,j}-feat_m)/feat_std;
         end;
     end;
 end;
@@ -187,39 +213,36 @@ end;
 
            
 %% Just try to train a patternet.
-
-global pat_net;
-
-pat_net = cell(3,1);
-
-for k=1:3
-    pat_net{k} = patternnet(10);
-    pat_net{k}.divideParam.trainRatio = 70/100;
-    pat_net{k}.divideParam.valRatio = 15/100;
-    pat_net{k}.divideParam.testRatio = 15/100;
-
-    net_in = cell(1,3);
-
-    net_in{1} = [feat_dtw{k,1};
-                feat_midcross{k,1};
-                feat_variance{k,1}
-                feat_mean{k,1}];
-    net_in{2} = [feat_dtw{k,2};
-                feat_midcross{k,2};
-                feat_variance{k,2}
-                feat_mean{k,2}];
-    net_in{3} = [feat_dtw{k,3};
-                feat_midcross{k,3};
-                feat_variance{k,3}
-                feat_mean{k,3}];
- 
-    pat_net{k} = train(pat_net{k},net_in{3},pat_targets{k});
-
-end;
+% pat_net = cell(3,1);
+% 
+% for k=1:3
+%     pat_net{k} = patternnet(10);
+%     pat_net{k}.divideParam.trainRatio = 70/100;
+%     pat_net{k}.divideParam.valRatio = 15/100;
+%     pat_net{k}.divideParam.testRatio = 15/100;
+% 
+%     net_in = cell(1,3);
+% 
+%     net_in{1} = [features{1}{k,1};
+%                 features{2}{k,1};
+%                 features{3}{k,1}
+%                 features{4}{k,1}];
+%     net_in{2} = [features{1}{k,2};
+%                 features{2}{k,2};
+%                 features{3}{k,2}
+%                 features{4}{k,2}];
+%     net_in{3} = [features{1}{k,3};
+%                 features{2}{k,3};
+%                 features{3}{k,3}
+%                 features{4}{k,3}];
+%  
+%     pat_net{k} = train(pat_net{k},net_in{3},pat_targets{k});
+% 
+% end;
 
 %% We select 4 clusters from the dataset and we use them as features.
 
-[idx, clust_c] = kmeans(sensor1', 4);
+%[idx, clust_c] = kmeans(sensor1', 4);
 %% Setup the GA for the features selection
 % For the moment we consider just the sensor1 dataset. For this first try
 % we consider the sensor output on a specific volunteer as a feature, so we
@@ -227,17 +250,62 @@ end;
 % activity. In other words, we will obtain the four indicies which
 % represents the columns in the sensor dataset.
 
+global pat_net;
+global sens_num t_interval;
+
+sens_num = 1;
+t_interval = 1;
+
 pat_net = patternnet(10);
 pat_net.divideParam.trainRatio = 70/100;
 pat_net.divideParam.valRatio = 15/100;
 pat_net.divideParam.testRatio = 15/100;
 
 fitnessFcn = @pattern_fitness;
-nvar = 98;
+nvar = 94;
 
 options = gaoptimset;
-options = gaoptimset(options,'TolFun', 1e-8, 'Generations', 300, ...
+options = gaoptimset(options,'TolFun', 1e-8, 'Generations', 100, ...
+    'SelectionFcn', @selectionroulette, ...
+    'CrossoverFcn', @crossoversinglepoint, ...
+    'MutationFcn', @mutationgaussian, ...
     'PlotFcns', @gaplotbestf);
 
-[x, fval] = ga(fitnessFcn, nvar, [], [], [], [], [1; 1; 1; 1], ...
-    [2000; 2000; 2000; 2000], [], [1 2 3 4], options);
+%[x, fval] = ga(fitnessFcn, nvar, [], [], [], [], [1; 1; 1; 1; -Inf*ones(94,1)], ...
+%    [4; 4; 4; 4; Inf*ones(94,1)], [], [1 2 3 4], options);
+
+[x, fval] = ga(fitnessFcn, nvar, [], [], [], [], [], ...
+    [], [], [], options);
+
+%% Prepare Data for ANFIS.
+% Checking data - 15% of the total features set. The checking dataset is
+% extracted from:
+% Activity 1, Volunteer 1
+% Activity 2, Volunteer 2
+% Activity 3, Volunteer 4
+% Activity 4, Volunteer 8
+% Activity 1, Volunteer 7
+% Activity 2, Volunteer 10
+%
+% Testing Data - 15% of the total features set. The testing dataset is
+% extracted from:
+% Activity 1, Volunteer 9
+% Activity 2, Volunteer 5
+% Activity 3, Volunteer 10
+% Activity 4, Volunteer 2
+% Activity 3, Volunteer 7
+% Activity 4, Volunteer 1
+
+
+% global anfis_train anfis_check;
+% 
+% anfis_train = cell(3,3);
+% anfis_check = cell(3,3);
+% anfis_test = cell(3,3);
+% 
+% for k=1:3
+%     for i=1:3
+%         for j=1:4
+%         anfis_train{i,j} = 
+%     end;
+% end;

@@ -2,20 +2,25 @@ function [ y ] = pattern_fitness( x )
 %PATTERN_FITNESS Fitness function for the GA using the patternnet
 
 global pat_net;
-global sensor1;
+global features;
 global pat_targets;
+global t_interval sens_num;
 
-net_in = [sensor1(x(1),:);
-          sensor1(x(2),:);
-          sensor1(x(3),:);
-          sensor1(x(4),:)];
+% net_in = [features{x(1)}{t_interval,sens_num};
+%           features{x(2)}{t_interval,sens_num};
+%           features{x(3)}{t_interval,sens_num};
+%           features{x(4)}{t_interval,sens_num}];
+      
+net_in = [features{1}{t_interval,sens_num};
+          features{2}{t_interval,sens_num};
+          features{3}{t_interval,sens_num};
+          features{4}{t_interval,sens_num}];
 
-pat_net = configure(pat_net, net_in, pat_targets);
-pat_net = setwb(pat_net, x(5:98));
-% pat_net = train(pat_net,net_in,pat_targets); 
+pat_net = configure(pat_net, net_in, pat_targets{t_interval});
+pat_net = setwb(pat_net, x);
 net_out = pat_net(net_in);
 
-y = perform(pat_net,pat_targets,net_out);
+y = perform(pat_net,pat_targets{t_interval},net_out);
 
 end
 
