@@ -3,7 +3,7 @@ function [ matrix ] = extract_feature_fmaxpeak(data, sensor, Fs)
 for k =1:1:10
     for i = 1:1:4
     
-        [x, y] = dataInTimeDomain(data, i, k, 1);
+        [x, y] = dataInTimeDomain(data, i, k, sensor);
         [P,f] = periodogram(y,[],[],Fs,'power');
         [pk{k}(:, i),lc{k}(:, i)] = findpeaks(P,'SortStr','descend','NPeaks',1);
       
