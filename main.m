@@ -345,7 +345,26 @@ options = gaoptimset(options,'TolFun', 1e-8, 'Generations', 100, ...
 % [x, fval] = ga(fitnessFcn, nvar, [], [], [], [], [], ...
 %     [], [], [], options);
 
-%% Prepare Data for ANFIS.
+%% Select the features obtained from the GA.
+
+ga_feat = x(1:4);
+best_sensor = 1;
+selected_tmp = [];
+
+for i=1:8
+    selected_tmp = [selected_tmp features{i}{1,best_sensor}'];
+end;
+
+selected_features = cell(3,1);
+
+selected_features{1} = selected_tmp(:,sort(ga_feat));
+
+%%******* One-against-all Classifiers *******
+
+%%------- Sugeno-type Inference System -------
+%
+% Prepare Data for ANFIS.
+%
 % Checking data - 15% of the total features set. The checking dataset is
 % extracted from:
 % Activity 1, Volunteer 1
@@ -365,15 +384,25 @@ options = gaoptimset(options,'TolFun', 1e-8, 'Generations', 100, ...
 % Activity 4, Volunteer 1
 
 
-% global anfis_train anfis_check;
-% 
-% anfis_train = cell(3,3);
-% anfis_check = cell(3,3);
-% anfis_test = cell(3,3);
-% 
-% for k=1:3
-%     for i=1:3
-%         for j=1:4
-%         anfis_train{i,j} = 
-%     end;
-% end;
+global anfis_train anfis_check anfis_test;
+
+anfis_train = cell(3,4);
+anfis_check = cell(3,4);
+anfis_test = cell(3,4);
+
+checking_indicies = cell(3,1);
+checking_indicies{1} = [1 7 12 20 24 38];
+checking_indicies{2} = sort([checking_indicies{1}*2 ...
+    (checking_indicies{1}*2)-1]);
+checking_indicies{3} = sort([checking_indicies{1}*4 ...
+    (checking_indicies{1}*4)-1 (checking_indicies{1}*4)-2 ...
+    (checking_indicies{1}*4)-3]);
+
+% i: time interval.
+for i=1:3
+    % j: activity to be compared.
+    for j=1:4
+        anfis_check{i,j} = [selected_features{i}(checking_indicies{i},:) ...
+            pat_targets{i}(j,checking_indicies{i})'];
+    end;
+end;
