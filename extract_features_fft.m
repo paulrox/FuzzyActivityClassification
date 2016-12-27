@@ -18,7 +18,7 @@ maxpeaks_feat = extract_fmaxpeak(sensor, Fs);
 
 %% Compute Average Power Feature
 
-bandp = extract_bandpower(sensor);
+bandp_feat = extract_bandpower(sensor);
 
 %% Compute Average Peaks Distance
 
