@@ -171,65 +171,33 @@ end;
 
 features_raw{4} = feat_dtw;
 
-%% Features extraction (Frenquency Domain)
+%% Features extraction (Frequency Domain)
 
 % Sampling frequency
 Fs = 1 / 82;
 
 % ----Bandwidth----
-feat_band = cell(3,3);
 
-for k=1:1
-    for i=1:3
-        feat_tmp = cell2mat(extract_feature_bandwidth(data,i,Fs));
-        feat_band{k,i} = [feat_tmp(:,1); feat_tmp(:,2); feat_tmp(:,3);
-                          feat_tmp(:,4)]';
-    end;
-end;
-
+feat_band = extract_bandwidth(sensor,Fs);
 features_raw{5} = feat_band;
 
 % ----Max Peak Frequency----
 % Find the frequency which corresponds to the max peak in the frequency
 % domain.
-feat_maxpeak = cell(3,3);
 
-for k=1:1
-    for i=1:3
-        feat_tmp = extract_feature_fmaxpeak(data,i,Fs);
-        feat_maxpeak{k,i} = [feat_tmp(:,1); feat_tmp(:,2); feat_tmp(:,3);
-                          feat_tmp(:,4)]';
-    end;
-end;
-
+feat_maxpeak = extract_fmaxpeak(sensor,Fs);
 features_raw{6} = feat_maxpeak;
 
 % ----Average Power ----
 % Average power of the signals.
-feat_pow = cell(3,3);
 
-for k=1:1
-    for i=1:3
-        feat_tmp = cell2mat(extract_bandpower(data,i));
-        feat_pow{k,i} = [feat_tmp(:,1); feat_tmp(:,2); feat_tmp(:,3);
-                          feat_tmp(:,4)]';
-    end;
-end;
-
+feat_pow = extract_bandpower(sensor);
 features_raw{7} = feat_pow;
 
 % ----Peaks distance----
 % Find the average distance between peaks in the signal..
-feat_peakdist = cell(3,3);
 
-for k=1:1
-    for i=1:3
-        feat_tmp = extract_averagedistance_peaks(data,i,Fs);
-        feat_peakdist{k,i} = [feat_tmp(:,1); feat_tmp(:,2); feat_tmp(:,3);
-                          feat_tmp(:,4)]';
-    end;
-end;
-
+feat_peakdist = extract_averagedistance_peaks(sensor,Fs);
 features_raw{8} = feat_peakdist;
 
 %% Features Normalization
@@ -239,12 +207,7 @@ global features;
 features = features_raw;
 
 for i=1:8
-    if i>4
-        end_time = 1;
-    else
-        end_time = 3;
-    end;
-    for k=1:end_time
+    for k=1:3
         for j=1:3
             feat_m =  mean(features_raw{i}{k,j});
             feat_std = std(features_raw{i}{k,j});
@@ -319,31 +282,43 @@ end;
 % represents the columns in the sensor dataset.
 
 global pat_net;
+global pat_nets;
 global sens_num t_interval;
+global history;
 
-sens_num = 1;
-t_interval = 1;
+history = struct;
+pat_nets = cell(3,3);
 
-pat_net = patternnet(10);
-pat_net.divideParam.trainRatio = 70/100;
-pat_net.divideParam.valRatio = 15/100;
-pat_net.divideParam.testRatio = 15/100;
+for i=1:3
+    
+    sens_num = i;
+    t_interval = 1;
 
-fitnessFcn = @pattern_fitness;
-nvar = 98;
+    pat_net = patternnet(10);
+    pat_net.divideParam.trainRatio = 70/100;
+    pat_net.divideParam.valRatio = 15/100;
+    pat_net.divideParam.testRatio = 15/100;
 
-options = gaoptimset;
-options = gaoptimset(options,'TolFun', 1e-8, 'Generations', 100, ...
+    fitnessFcn = @pattern_fitness;
+    nvar = 98;
+    options = gaoptimset;
+    options = gaoptimset(options,'TolFun', 1e-8, 'Generations', 10, ...
     'SelectionFcn', @selectionroulette, ...
     'CrossoverFcn', @crossoversinglepoint, ...
     'MutationFcn', @mutationgaussian, ...
+    'OutputFcn', @ga_output, ...
     'PlotFcns', @gaplotbestf);
 
-[x, fval] = ga(fitnessFcn, nvar, [], [], [], [], [1; 1; 1; 1; -Inf*ones(94,1)], ...
-   [8; 8; 8; 8; Inf*ones(94,1)], [], [1 2 3 4], options);
-
-% [x, fval] = ga(fitnessFcn, nvar, [], [], [], [], [], ...
-%     [], [], [], options);
+    [x, fval] = ga(fitnessFcn, nvar, [], [], [], [], [1; 1; 1; 1; ...
+        -Inf*ones(94,1)], [8; 8; 8; 8; Inf*ones(94,1)], [], [1 2 3 4], ...
+        options);
+    
+    pat_nets{i,1} = pat_net;
+    pat_nets{i,1} = setwb(pat_nets{i,1}, x(5:98));
+    pat_nets{i,2} = history;
+    pat_nets{i,3} = x(1:4);
+    
+end;
 
 %% Select the features obtained from the GA.
 
