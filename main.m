@@ -77,12 +77,12 @@ end;
 % The data has been stored ordering first the volunteer and then the
 % activity.
 
-%% Features extraction
+%% Features extraction (Time Domain)
 % ----Variance----
 
 global features_raw;
 
-features_raw = cell(4,1);
+features_raw = cell(8,1);
 
 feat_variance = cell(3,3);
 
@@ -171,12 +171,80 @@ end;
 
 features_raw{4} = feat_dtw;
 
+%% Features extraction (Frenquency Domain)
+
+% Sampling frequency
+Fs = 1 / 82;
+
+% ----Bandwidth----
+feat_band = cell(3,3);
+
+for k=1:1
+    for i=1:3
+        feat_tmp = cell2mat(extract_feature_bandwidth(data,i,Fs));
+        feat_band{k,i} = [feat_tmp(:,1); feat_tmp(:,2); feat_tmp(:,3);
+                          feat_tmp(:,4)]';
+    end;
+end;
+
+features_raw{5} = feat_band;
+
+% ----Max Peak Frequency----
+% Find the frequency which corresponds to the max peak in the frequency
+% domain.
+feat_maxpeak = cell(3,3);
+
+for k=1:1
+    for i=1:3
+        feat_tmp = extract_feature_fmaxpeak(data,i,Fs);
+        feat_maxpeak{k,i} = [feat_tmp(:,1); feat_tmp(:,2); feat_tmp(:,3);
+                          feat_tmp(:,4)]';
+    end;
+end;
+
+features_raw{6} = feat_maxpeak;
+
+% ----Average Power ----
+% Average power of the signals.
+feat_pow = cell(3,3);
+
+for k=1:1
+    for i=1:3
+        feat_tmp = cell2mat(extract_bandpower(data,i));
+        feat_pow{k,i} = [feat_tmp(:,1); feat_tmp(:,2); feat_tmp(:,3);
+                          feat_tmp(:,4)]';
+    end;
+end;
+
+features_raw{7} = feat_pow;
+
+% ----Peaks distance----
+% Find the average distance between peaks in the signal..
+feat_peakdist = cell(3,3);
+
+for k=1:1
+    for i=1:3
+        feat_tmp = extract_averagedistance_peaks(data,i,Fs);
+        feat_peakdist{k,i} = [feat_tmp(:,1); feat_tmp(:,2); feat_tmp(:,3);
+                          feat_tmp(:,4)]';
+    end;
+end;
+
+features_raw{8} = feat_peakdist;
+
 %% Features Normalization
+
+global features;
 
 features = features_raw;
 
-for i=1:4
-    for k=1:3
+for i=1:8
+    if i>4
+        end_time = 1;
+    else
+        end_time = 3;
+    end;
+    for k=1:end_time
         for j=1:3
             feat_m =  mean(features_raw{i}{k,j});
             feat_std = std(features_raw{i}{k,j});
@@ -262,7 +330,7 @@ pat_net.divideParam.valRatio = 15/100;
 pat_net.divideParam.testRatio = 15/100;
 
 fitnessFcn = @pattern_fitness;
-nvar = 94;
+nvar = 98;
 
 options = gaoptimset;
 options = gaoptimset(options,'TolFun', 1e-8, 'Generations', 100, ...
@@ -271,11 +339,11 @@ options = gaoptimset(options,'TolFun', 1e-8, 'Generations', 100, ...
     'MutationFcn', @mutationgaussian, ...
     'PlotFcns', @gaplotbestf);
 
-%[x, fval] = ga(fitnessFcn, nvar, [], [], [], [], [1; 1; 1; 1; -Inf*ones(94,1)], ...
-%    [4; 4; 4; 4; Inf*ones(94,1)], [], [1 2 3 4], options);
+[x, fval] = ga(fitnessFcn, nvar, [], [], [], [], [1; 1; 1; 1; -Inf*ones(94,1)], ...
+   [8; 8; 8; 8; Inf*ones(94,1)], [], [1 2 3 4], options);
 
-[x, fval] = ga(fitnessFcn, nvar, [], [], [], [], [], ...
-    [], [], [], options);
+% [x, fval] = ga(fitnessFcn, nvar, [], [], [], [], [], ...
+%     [], [], [], options);
 
 %% Prepare Data for ANFIS.
 % Checking data - 15% of the total features set. The checking dataset is
