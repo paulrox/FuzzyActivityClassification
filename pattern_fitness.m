@@ -10,15 +10,17 @@ net_in = [features{x(1)}{t_interval,sens_num};
           features{x(2)}{t_interval,sens_num};
           features{x(3)}{t_interval,sens_num};
           features{x(4)}{t_interval,sens_num}];
-      
-% net_in = [features{1}{t_interval,sens_num};
-%           features{2}{t_interval,sens_num};
-%           features{3}{t_interval,sens_num};
-%           features{4}{t_interval,sens_num}];
 
 pat_net = configure(pat_net, net_in, pat_targets{t_interval});
 pat_net = setwb(pat_net, x(5:98));
 net_out = pat_net(net_in);
+
+% if size(unique(x(1:4)),2) < 4
+%     penalty = 100;
+% else
+%     penalty = 0;
+% end;
+
 
 y = perform(pat_net,pat_targets{t_interval},net_out);
 

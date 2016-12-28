@@ -78,7 +78,7 @@ end;
 % activity.
 
 %% Features extraction (Time Domain)
-% ----Variance----
+% ---- Variance ----
 
 global features_raw;
 
@@ -96,7 +96,7 @@ end;
 
 features_raw{1} = feat_variance;
 
-% ----Mean Value----
+% ---- Mean Value ----
 
 feat_mean = cell(3,3);
 
@@ -109,6 +109,20 @@ for k=1:3
 end;
 
 features_raw{2} = feat_mean;
+
+% ---- Standard Deviation ----
+
+feat_std = cell(3,3);
+
+for k=1:3
+    for i=1:3
+        for j=1:20*2^k
+            feat_std{k,i} = [feat_std{k,i} std(sensor{k,i}(:,j))];
+        end;
+    end;
+end;
+
+features_raw{3} = feat_std;
 
 % ----Mid-crossing----
 % The function midcross stores the time instants in which the signals
@@ -152,7 +166,7 @@ for k=1:3
     end;
 end;
 
-features_raw{3} = feat_midcross;
+features_raw{4} = feat_midcross;
 
 % ----Similarity of Signals patterns----
 % In practice, we compare the first half of the signal with the second half
@@ -169,36 +183,36 @@ for k=1:3
     end;
 end;
 
-features_raw{4} = feat_dtw;
+features_raw{5} = feat_dtw;
 
 %% Features extraction (Frequency Domain)
 
 % Sampling frequency
-Fs = 1 / 82;
+Fs = 1 / 0.082;
 
 % ----Bandwidth----
 
 feat_band = extract_bandwidth(sensor,Fs);
-features_raw{5} = feat_band;
+features_raw{6} = feat_band;
 
 % ----Max Peak Frequency----
 % Find the frequency which corresponds to the max peak in the frequency
 % domain.
 
 feat_maxpeak = extract_fmaxpeak(sensor,Fs);
-features_raw{6} = feat_maxpeak;
+features_raw{7} = feat_maxpeak;
 
 % ----Average Power ----
 % Average power of the signals.
 
 feat_pow = extract_bandpower(sensor);
-features_raw{7} = feat_pow;
+features_raw{8} = feat_pow;
 
 % ----Peaks distance----
 % Find the average distance between peaks in the signal..
 
 feat_peakdist = extract_averagedistance_peaks(sensor,Fs);
-features_raw{8} = feat_peakdist;
+features_raw{9} = feat_peakdist;
 
 %% Features Normalization
 
@@ -206,7 +220,7 @@ global features;
 
 features = features_raw;
 
-for i=1:8
+for i=1:9
     for k=1:3
         for j=1:3
             feat_m =  mean(features_raw{i}{k,j});
@@ -302,15 +316,23 @@ for i=1:3
     fitnessFcn = @pattern_fitness;
     nvar = 98;
     options = gaoptimset;
-    options = gaoptimset(options,'TolFun', 1e-8, 'Generations', 10, ...
+    options = gaoptimset(options,'TolFun', 1e-8, 'Generations', 50, ...
     'SelectionFcn', @selectionroulette, ...
     'CrossoverFcn', @crossoversinglepoint, ...
     'MutationFcn', @mutationgaussian, ...
     'OutputFcn', @ga_output, ...
+    'CreationFcn', @gacreationlinearfeasible, ...
     'PlotFcns', @gaplotbestf);
 
-    [x, fval] = ga(fitnessFcn, nvar, [], [], [], [], [1; 1; 1; 1; ...
-        -Inf*ones(94,1)], [8; 8; 8; 8; Inf*ones(94,1)], [], [1 2 3 4], ...
+    % Linear inequalities, necessary to avoid solutions with the same
+    % feature more than one time.
+    A = [1 -1 0 0 zeros(1,94);
+         0 1 -1 0 zeros(1,94);
+         0 0 1 -1 zeros(1,94)];
+    b = [-1; -1; -1];
+
+    [x, fval] = ga(fitnessFcn, nvar, A, b, [], [], [1; 1; 1; 1; ...
+        -Inf*ones(94,1)], [9; 9; 9; 9; Inf*ones(94,1)], [], [1 2 3 4], ...
         options);
     
     pat_nets{i,1} = pat_net;
@@ -320,23 +342,39 @@ for i=1:3
     
 end;
 
-%% Select the features obtained from the GA.
+%% Choose the best sensor.
+% We evaluate the patternet performances using the confusion matrix and we
+% choose the sensor by which we obtain the best value.
 
-ga_feat = x(1:4);
-best_sensor = 1;
+pat_confusion = zeros(1,3);
+
+for i=1:3
+    net_in = [features{pat_nets{i,3}(1)}{t_interval,i};
+              features{pat_nets{i,3}(2)}{t_interval,i};
+              features{pat_nets{i,3}(3)}{t_interval,i};
+              features{pat_nets{i,3}(4)}{t_interval,i}];
+    net_out = pat_nets{i,1}(net_in);
+    pat_confusion(i) = confusion(pat_targets{t_interval},net_out);
+end;
+
+best_sensor = find(pat_confusion==min(pat_confusion));
+
+%% Select the features obtained from the GA for the best sensor.
+
+best_feat = pat_nets{best_sensor,3};
 selected_tmp = [];
 
-for i=1:8
+for i=1:9
     selected_tmp = [selected_tmp features{i}{1,best_sensor}'];
 end;
 
 selected_features = cell(3,1);
 
-selected_features{1} = selected_tmp(:,sort(ga_feat));
+selected_features{1} = selected_tmp(:,best_feat);
 
-%%******* One-against-all Classifiers *******
+%% ******* One-against-all Classifiers *******
 
-%%------- Sugeno-type Inference System -------
+%% ------- Sugeno-type Inference System -------
 %
 % Prepare Data for ANFIS.
 %
@@ -357,14 +395,13 @@ selected_features{1} = selected_tmp(:,sort(ga_feat));
 % Activity 4, Volunteer 2
 % Activity 3, Volunteer 7
 % Activity 4, Volunteer 1
-
-
 global anfis_train anfis_check anfis_test;
 
 anfis_train = cell(3,4);
 anfis_check = cell(3,4);
 anfis_test = cell(3,4);
 
+%Indicies of the checking dataset.
 checking_indicies = cell(3,1);
 checking_indicies{1} = [1 7 12 20 24 38];
 checking_indicies{2} = sort([checking_indicies{1}*2 ...
@@ -373,11 +410,50 @@ checking_indicies{3} = sort([checking_indicies{1}*4 ...
     (checking_indicies{1}*4)-1 (checking_indicies{1}*4)-2 ...
     (checking_indicies{1}*4)-3]);
 
+%Indicies of the testing dataset.
+testing_indicies = cell(3,1);
+testing_indicies{1} = [9 15 27 30 31 32];
+testing_indicies{2} = sort([testing_indicies{1}*2 ...
+    (testing_indicies{1}*2)-1]);
+testing_indicies{3} = sort([testing_indicies{1}*4 ...
+    (testing_indicies{1}*4)-1 (testing_indicies{1}*4)-2 ...
+    (testing_indicies{1}*4)-3]);
+
+%Indicies of the training dataset.
+training_indicies = cell(3,1);
+training_indicies{1} = setdiff(setdiff((1:40),checking_indicies{1}), ...
+    testing_indicies{1});
+
+% Extract the checking, testing and training datasets from the features
+% set.
 % i: time interval.
-for i=1:3
+for i=1:1
     % j: activity to be compared.
     for j=1:4
         anfis_check{i,j} = [selected_features{i}(checking_indicies{i},:) ...
             pat_targets{i}(j,checking_indicies{i})'];
+        anfis_test{i,j} = [selected_features{i}(testing_indicies{i},:) ...
+            pat_targets{i}(j,testing_indicies{i})'];
+        anfis_train{i,j} = [selected_features{i}(training_indicies{i},:) ...
+            pat_targets{i}(j,training_indicies{i})'];
     end;
+end;
+
+%% Generate FIS structures and train them using ANFIS.
+
+sugeno_fis = cell(5,2);
+
+trnOpt = [20 0 0.01 0.9 1.1];
+dispOpt = [NaN NaN NaN NaN];
+
+
+for i=1:4
+    sugeno_fis{i,2} = struct('error',[],'stepsize',[],'chkFis',[],...
+        'chkErr',[]);
+    sugeno_fis{i,1} = genfis2(anfis_train{1,i}(:,1:4), ...
+        anfis_train{1,i}(:,5),0.5);
+    [sugeno_fis{i,1},sugeno_fis{i,2}.error,sugeno_fis{i,2}.stepsize,...
+        sugeno_fis{i,2}.chkFis,sugeno_fis{i,2}.chkErr] = ...
+        anfis(anfis_train{1,i},sugeno_fis{i,1},trnOpt,dispOpt, ...
+        anfis_check{1,i});
 end;
