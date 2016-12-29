@@ -362,15 +362,19 @@ best_sensor = find(pat_confusion==min(pat_confusion));
 %% Select the features obtained from the GA for the best sensor.
 
 best_feat = pat_nets{best_sensor,3};
-selected_tmp = [];
+selected_tmp = cell(3,1);
 
 for i=1:9
-    selected_tmp = [selected_tmp features{i}{1,best_sensor}'];
+    selected_tmp{1} = [selected_tmp{1} features{i}{1,best_sensor}'];
+    selected_tmp{2} = [selected_tmp{2} features{i}{2,best_sensor}'];
+    selected_tmp{3} = [selected_tmp{3} features{i}{3,best_sensor}'];
 end;
 
 selected_features = cell(3,1);
 
-selected_features{1} = selected_tmp(:,best_feat);
+selected_features{1} = selected_tmp{1}(:,best_feat);
+selected_features{2} = selected_tmp{2}(:,best_feat);
+selected_features{3} = selected_tmp{3}(:,best_feat);
 
 %% ******* One-against-all Classifiers *******
 
@@ -395,11 +399,10 @@ selected_features{1} = selected_tmp(:,best_feat);
 % Activity 4, Volunteer 2
 % Activity 3, Volunteer 7
 % Activity 4, Volunteer 1
-global anfis_train anfis_check anfis_test;
 
-anfis_train = cell(3,4);
-anfis_check = cell(3,4);
-anfis_test = cell(3,4);
+anfis_train = cell(3,5);
+anfis_check = cell(3,5);
+anfis_test = cell(3,5);
 
 %Indicies of the checking dataset.
 checking_indicies = cell(3,1);
@@ -423,11 +426,15 @@ testing_indicies{3} = sort([testing_indicies{1}*4 ...
 training_indicies = cell(3,1);
 training_indicies{1} = setdiff(setdiff((1:40),checking_indicies{1}), ...
     testing_indicies{1});
+training_indicies{2} = setdiff(setdiff((1:80),checking_indicies{2}), ...
+    testing_indicies{2});
+training_indicies{3} = setdiff(setdiff((1:160),checking_indicies{3}), ...
+    testing_indicies{3});
 
 % Extract the checking, testing and training datasets from the features
 % set.
 % i: time interval.
-for i=1:1
+for i=1:3
     % j: activity to be compared.
     for j=1:4
         anfis_check{i,j} = [selected_features{i}(checking_indicies{i},:) ...
@@ -457,3 +464,47 @@ for i=1:4
         anfis(anfis_train{1,i},sugeno_fis{i,1},trnOpt,dispOpt, ...
         anfis_check{1,i});
 end;
+
+%% ******* Four-Class Classifier *******
+
+%% ------- Sugeno-type Inference System -------
+%
+% The FIS targets are coded as integer number in this way:
+% - 1: Supine Position;
+% - 2: Walking;
+% - 3: Dorsiflexion Standing;
+% - 4: Stairs Climbing.
+%
+% The datasets are organized as in the All-Against-One classifiers, so we
+% can reuse them.
+
+all_targets = cell(3,1);
+
+all_targets{1} = [ones(1,10), 2*ones(1,10), 3*ones(1,10), 4*ones(1,10)]';
+all_targets{2} = [ones(1,20), 2*ones(1,20), 3*ones(1,20), 4*ones(1,20)]';
+all_targets{3} = [ones(1,40), 2*ones(1,40), 3*ones(1,40), 4*ones(1,40)]';
+
+
+for i=1:3
+    % j: activity to be compared.
+        anfis_check{i,5} = [selected_features{i}(checking_indicies{i},:) ...
+            all_targets{i}(checking_indicies{i}')];
+        anfis_test{i,5} = [selected_features{i}(testing_indicies{i},:) ...
+            all_targets{i}(testing_indicies{i}')];
+        anfis_train{i,5} = [selected_features{i}(training_indicies{i},:) ...
+            all_targets{i}(training_indicies{i}')];
+end;
+
+trnOpt = [30 0 0.01 0.9 1.1];
+dispOpt = [NaN NaN NaN NaN];
+
+sugeno_fis{5,2} = struct('error',[],'stepsize',[],'chkFis',[],...
+        'chkErr',[]);
+sugeno_fis{5,1} = genfis2(anfis_train{1,5}(:,1:4), ... 
+   anfis_train{1,5}(:,5),0.5);
+% sugeno_fis{5,1} = genfis3(anfis_train{1,5}(:,1:4), ... 
+%     anfis_train{1,5}(:,5),'sugeno');
+[sugeno_fis{5,1},sugeno_fis{5,2}.error,sugeno_fis{5,2}.stepsize,...
+    sugeno_fis{5,2}.chkFis,sugeno_fis{5,2}.chkErr] = ...
+    anfis(anfis_train{1,5},sugeno_fis{5,1},trnOpt,dispOpt, ...
+    anfis_check{1,5});
