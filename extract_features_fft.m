@@ -6,7 +6,7 @@
 
 load sensor.mat % Data with different time intervals
 
-Fs = 1 / 82; % Sampling Frequency
+Fs = 1 / (82e-3); % Sampling Frequency
 
 %% Compute Bandwidth Feature
 
