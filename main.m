@@ -90,7 +90,7 @@ for i = 1:3
             %sensor{i, j}(:,k) = hampel(sensor{i,j}(:,k));
             %sensor{i, j}(:,k) = medfilt1(sensor{i,j}(:,k),50);
             % Hi-pass filter
-            %sensor{i,j}(:,k) = filter(Hi_pass,sensor{i,j}(:,k));
+            %sensor{i,j}(:,k) = filter(Hd,sensor{i,j}(:,k));
             % Low Pass Filter
             %sensor{i, j}(:,k) = filter(Hd, sensor{i, j}(:,k));
            
@@ -100,11 +100,53 @@ end
 
 
 %% Features extraction (Time Domain).
-% ---- Variance ----
-
 global features_raw;
 
-features_raw = cell(8,1);
+features_raw = cell(15,1);
+
+% ---- Max Value ----
+
+feat_max = cell(3,3);
+
+for k=1:3
+    for i=1:3
+        for j=1:20*2^k
+            feat_max{k,i} = [feat_max{k,i} max(sensor{k,i}(:,j))];
+        end;
+    end;
+end;
+
+features_raw{1} = feat_max;
+
+% ---- Min Value ----
+
+feat_min = cell(3,3);
+
+for k=1:3
+    for i=1:3
+        for j=1:20*2^k
+            feat_min{k,i} = [feat_min{k,i} min(sensor{k,i}(:,j))];
+        end;
+    end;
+end;
+
+features_raw{2} = feat_min;
+
+% ---- Root-Mean-Square Level (RMS) ----
+
+feat_rms = cell(3,3);
+
+for k=1:3
+    for i=1:3
+        for j=1:20*2^k
+            feat_rms{k,i} = [feat_rms{k,i} rms(sensor{k,i}(:,j))];
+        end;
+    end;
+end;
+
+features_raw{3} = feat_rms;
+
+% ---- Variance ----
 
 feat_variance = cell(3,3);
 
@@ -116,7 +158,7 @@ for k=1:3
     end;
 end;
 
-features_raw{1} = feat_variance;
+features_raw{4} = feat_variance;
 
 % ---- Mean Value ----
 
@@ -130,7 +172,7 @@ for k=1:3
     end;
 end;
 
-features_raw{2} = feat_mean;
+features_raw{5} = feat_mean;
 
 % ---- Standard Deviation ----
 
@@ -144,7 +186,37 @@ for k=1:3
     end;
 end;
 
-features_raw{3} = feat_std;
+features_raw{6} = feat_std;
+
+% ---- Peak to Peak ----
+
+feat_peak2peak = cell(3,3);
+
+for k=1:3
+    for i=1:3
+        for j=1:20*2^k
+            feat_peak2peak{k,i} = [feat_peak2peak{k,i} ...
+                peak2peak(sensor{k,i}(:,j))];
+        end;
+    end;
+end;
+
+features_raw{7} = feat_peak2peak;
+
+% ---- Peak to RMS ----
+
+feat_peak2rms = cell(3,3);
+
+for k=1:3
+    for i=1:3
+        for j=1:20*2^k
+            feat_peak2rms{k,i} = [feat_peak2rms{k,i} ...
+                peak2rms(sensor{k,i}(:,j))];
+        end;
+    end;
+end;
+
+features_raw{8} = feat_peak2rms;
 
 % ----Mid-crossing----
 % The function midcross stores the time instants in which the signals
@@ -188,7 +260,7 @@ for k=1:3
     end;
 end;
 
-features_raw{4} = feat_midcross;
+features_raw{9} = feat_midcross;
 
 % ----Similarity of Signals patterns----
 % In practice, we compare the first half of the signal with the second half
@@ -205,36 +277,51 @@ for k=1:3
     end;
 end;
 
-features_raw{5} = feat_dtw;
+features_raw{10} = feat_dtw;
 
 %% Features extraction (Frequency Domain)
 
 % Sampling frequency
 Fs = 1 / 0.082;
 
-% ----Bandwidth----
+% ---- Bandwidth ----
 
 feat_band = extract_bandwidth(sensor,Fs);
-features_raw{6} = feat_band;
+features_raw{11} = feat_band;
 
-% ----Max Peak Frequency----
+% ---- Max Peak Frequency ----
 % Find the frequency which corresponds to the max peak in the frequency
 % domain.
 
 feat_maxpeak = extract_fmaxpeak(sensor,Fs);
-features_raw{7} = feat_maxpeak;
+features_raw{12} = feat_maxpeak;
 
-% ----Average Power ----
+% ---- Average Power ----
 % Average power of the signals.
 
 feat_pow = extract_bandpower(sensor);
-features_raw{8} = feat_pow;
+features_raw{13} = feat_pow;
 
-% ----Peaks distance----
+% ---- Peaks distance ----
 % Find the average distance between peaks in the signal..
 
 feat_peakdist = extract_averagedistance_peaks(sensor,Fs);
-features_raw{9} = feat_peakdist;
+features_raw{14} = feat_peakdist;
+
+% ---- Mean Frequency ----
+
+feat_meanfreq = cell(3,3);
+
+for k=1:3
+    for i=1:3
+        for j=1:20*2^k
+            feat_meanfreq{k,i} = [feat_meanfreq{k,i} ...
+                meanfreq(sensor{k,i}(:,j))];
+        end;
+    end;
+end;
+
+features_raw{15} = feat_dtw;
 
 %% Features Normalization
 
@@ -242,7 +329,7 @@ global features;
 
 features = features_raw;
 
-for i=1:9
+for i=1:15
     for k=1:3
         for j=1:3
             feat_m =  mean(features_raw{i}{k,j});
@@ -338,7 +425,7 @@ for i=1:3
     fitnessFcn = @pattern_fitness;
     nvar = 98;
     options = gaoptimset;
-    options = gaoptimset(options,'TolFun', 1e-8, 'Generations', 50, ...
+    options = gaoptimset(options,'TolFun', 1e-8, 'Generations', 300, ...
     'SelectionFcn', @selectionroulette, ...
     'CrossoverFcn', @crossoversinglepoint, ...
     'MutationFcn', @mutationgaussian, ...
@@ -354,8 +441,8 @@ for i=1:3
     b = [-1; -1; -1];
 
     [x, fval] = ga(fitnessFcn, nvar, A, b, [], [], [1; 1; 1; 1; ...
-        -Inf*ones(94,1)], [9; 9; 9; 9; Inf*ones(94,1)], [], [1 2 3 4], ...
-        options);
+        -Inf*ones(94,1)], [15; 15; 15; 15; Inf*ones(94,1)], [], ...
+        [1 2 3 4], options);
     
     pat_nets{i,1} = pat_net;
     pat_nets{i,1} = setwb(pat_nets{i,1}, x(5:98));
@@ -386,7 +473,7 @@ best_sensor = find(pat_confusion==min(pat_confusion));
 best_feat = pat_nets{best_sensor,3};
 selected_tmp = cell(3,1);
 
-for i=1:9
+for i=1:15
     selected_tmp{1} = [selected_tmp{1} features{i}{1,best_sensor}'];
     selected_tmp{2} = [selected_tmp{2} features{i}{2,best_sensor}'];
     selected_tmp{3} = [selected_tmp{3} features{i}{3,best_sensor}'];
