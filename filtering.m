@@ -21,8 +21,12 @@ Fs = 1 / 82e-3
 for i = 1: 1: 3
    for j = 1: 1: 3
        for k = 1: 1: size(sensor{i, j}, 2)
+           
+           % Low Pass Filter
             sensor_filtered{i, j}(:,k) = filter(Hd, sensor{i, j}(:,k));
+            % Median filter for spikes
             sensor_filtered{i, j}(:,k) = medfilt1(sensor{i, j}(:,k), 3);
+            %
             sensor_filtered{i, j}(:,k) = sgolayfilt(sensor_filtered{i, j}(:,k),5,41);
        end
    end
