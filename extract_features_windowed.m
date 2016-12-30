@@ -6,7 +6,7 @@ load features_raw.mat
 
 sensor = 2;
 window = 1;
-feat = 3;
+feat = 1;
 
 label = 1
 feat_temp = feat_filtered;

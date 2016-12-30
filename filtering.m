@@ -1,10 +1,10 @@
 %clear
 load sensor.mat
 load data.mat
-
+load Hd.mat
 Fs = 1 / 82e-3
 
-
+%obw([data{1,1}(:,1),medfilt1(data{1,1}(:,1),3)], Fs);
 %obw([data{1,1}(:,1), sgolayfilt(data{1,1}(:,1), 20, 51)], Fs)
 
 %obw([data{1,1}(:,1) data{2,1}(:,1) data{3,1}(:,1) data{4,1}(:,1)], Fs)
@@ -22,6 +22,7 @@ for i = 1: 1: 3
    for j = 1: 1: 3
        for k = 1: 1: size(sensor{i, j}, 2)
             sensor_filtered{i, j}(:,k) = filter(Hd, sensor{i, j}(:,k));
+            sensor_filtered{i, j}(:,k) = medfilt1(sensor{i, j}(:,k), 3);
             sensor_filtered{i, j}(:,k) = sgolayfilt(sensor_filtered{i, j}(:,k),5,41);
        end
    end
