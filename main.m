@@ -25,18 +25,17 @@ load('data.mat');
 % We divide the data by putting each sensor output for each volunteer in a
 % different matrix, and we get rid of the time column.
 
-global sensor;
 global timestamps;
 
-sensor = cell(3,3);
+sensor_raw = cell(3,3);
 timestamps = cell(3,1);
 
 % Time interval: 162 seconds.
 for i=1:4
     for j=1:10
-        sensor{1,1} = [sensor{1,1} data{i,j}(:,1)];
-        sensor{1,2} = [sensor{1,2} data{i,j}(:,2)];
-        sensor{1,3} = [sensor{1,3} data{i,j}(:,3)];
+        sensor_raw{1,1} = [sensor_raw{1,1} data{i,j}(:,1)];
+        sensor_raw{1,2} = [sensor_raw{1,2} data{i,j}(:,2)];
+        sensor_raw{1,3} = [sensor_raw{1,3} data{i,j}(:,3)];
         timestamps{1} = [timestamps{1} data{i,j}(:,4)];
     end;
 end;
@@ -44,11 +43,11 @@ end;
 % Time interval: 82 seconds.
 for i=1:4
     for j=1:10
-        sensor{2,1} = [sensor{2,1} data{i,j}(1:1000,1) ...
+        sensor_raw{2,1} = [sensor_raw{2,1} data{i,j}(1:1000,1) ...
                        data{i,j}(1001:2000,1)];
-        sensor{2,2} = [sensor{2,2} data{i,j}(1:1000,2) ...
+        sensor_raw{2,2} = [sensor_raw{2,2} data{i,j}(1:1000,2) ...
                        data{i,j}(1001:2000,2)];
-        sensor{2,3} = [sensor{2,3} data{i,j}(1:1000,3) ...
+        sensor_raw{2,3} = [sensor_raw{2,3} data{i,j}(1:1000,3) ...
                        data{i,j}(1001:2000,3)];
         timestamps{2} = [timestamps{2} data{i,j}(1:1000,4) ...
                          data{i,j}(1001:2000,4)-data{i,j}(1001,4)];
@@ -58,13 +57,13 @@ end;
 % Time interval: 41 seconds.
 for i=1:4
     for j=1:10
-        sensor{3,1} = [sensor{3,1} data{i,j}(1:500,1) ...
+        sensor_raw{3,1} = [sensor_raw{3,1} data{i,j}(1:500,1) ...
                        data{i,j}(501:1000,1) data{i,j}(1001:1500,1) ...
                        data{i,j}(1501:2000,1)];
-        sensor{3,2} = [sensor{3,2} data{i,j}(1:500,2) ...
+        sensor_raw{3,2} = [sensor_raw{3,2} data{i,j}(1:500,2) ...
                        data{i,j}(501:1000,2) data{i,j}(1001:1500,2) ...
                        data{i,j}(1501:2000,2)];
-        sensor{3,3} = [sensor{3,3} data{i,j}(1:500,3) ...
+        sensor_raw{3,3} = [sensor_raw{3,3} data{i,j}(1:500,3) ...
                        data{i,j}(501:1000,3) data{i,j}(1001:1500,3) ...
                        data{i,j}(1501:2000,3)];
         timestamps{3} = [timestamps{3} data{i,j}(1:500,4) ...
@@ -77,7 +76,30 @@ end;
 % The data has been stored ordering first the volunteer and then the
 % activity.
 
-%% Features extraction (Time Domain)
+%% Signal Filtering.
+
+global sensor;
+
+sensor = cell(3,3);
+
+for i = 1:3
+    for j = 1:3
+        for k = 1:20*(2^i)
+            sensor{i, j}(:,k) = detrend(sensor_raw{i, j}(:,k));
+            sensor{i, j}(:,k) = sgolayfilt(sensor{i, j}(:,k),5,41);
+            %sensor{i, j}(:,k) = hampel(sensor{i,j}(:,k));
+            %sensor{i, j}(:,k) = medfilt1(sensor{i,j}(:,k),50);
+            % Hi-pass filter
+            %sensor{i,j}(:,k) = filter(Hi_pass,sensor{i,j}(:,k));
+            % Low Pass Filter
+            %sensor{i, j}(:,k) = filter(Hd, sensor{i, j}(:,k));
+           
+       end
+   end
+end
+
+
+%% Features extraction (Time Domain).
 % ---- Variance ----
 
 global features_raw;
