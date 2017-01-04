@@ -8,7 +8,7 @@ feat_temp = extract_features2(sensor_filtered,1/82e-3)';
 %%
 sensor = 2;
 window = 1;
-feat = 19;
+feat = 17;
 
 label = 1
 

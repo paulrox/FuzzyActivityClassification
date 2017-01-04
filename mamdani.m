@@ -36,12 +36,12 @@ input = [df1;df2;df3;df4]';
  d3 = cell2mat(features_raw{f3,1}(1,1));
  d4 = cell2mat(features_raw{f4,1}(1,1));
  
-start = 21
+start = 31
 fine = start + 9
  for i = start:fine
  input = [d1(1,i) d2(1,i) d3(1,i) d4(1,i)]        
  
- output1 = evalfis(input,Mamdani3)
+ output1 = evalfis(input,Mamdani5)
  
  hold on;
  
