@@ -82,7 +82,7 @@ for i = 1: 1: 3
             [~, lc] = findpeaks(P);
             
             % Feat 16: Average frequency peaks for the power density signal
-            temp{16}{i, j}(1, k) = mean(diff((lc)));
+            temp{16}{i, j}(1, k) = mean(diff(f(lc)));
             
             [~,lc] = findpeaks(P,'SortStr','descend', 'NPeaks',3);
             
