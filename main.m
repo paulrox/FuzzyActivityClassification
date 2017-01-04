@@ -9,18 +9,6 @@ close all;
 % Load the dataset
 load('data.mat');
 
-%% We make a preliminary check on the data by drawing some plots.
-
-% At first we plot the different activities by the first sensor on the
-% first volunteer.
-
-% plot(data{1,1}(:,4),data{1,1}(:,1));
-% hold on;
-% plot(data{2,1}(:,4),data{2,1}(:,1));
-% plot(data{3,1}(:,4),data{3,1}(:,1));
-% plot(data{4,1}(:,4),data{4,1}(:,1));
-% hold off;
-
 %% Separate Data (each sensor is considered as an indipendent dataset)
 % We divide the data by putting each sensor output for each volunteer in a
 % different matrix, and we get rid of the time column.
@@ -81,19 +69,20 @@ end;
 global sensor;
 
 sensor = cell(3,3);
+lpf = load('low_pass.mat');
 
 for i = 1:3
     for j = 1:3
         for k = 1:20*(2^i)
             sensor{i, j}(:,k) = detrend(sensor_raw{i, j}(:,k));
-            sensor{i, j}(:,k) = sgolayfilt(sensor{i, j}(:,k),5,41);
+            %sensor{i, j}(:,k) = sgolayfilt(sensor{i, j}(:,k),5,41);
+            sensor{i, j}(:,k) = filter(lpf.Hd, sensor{i, j}(:,k));
             %sensor{i, j}(:,k) = hampel(sensor{i,j}(:,k));
             %sensor{i, j}(:,k) = medfilt1(sensor{i,j}(:,k),50);
             % Hi-pass filter
             %sensor{i,j}(:,k) = filter(Hd,sensor{i,j}(:,k));
             % Low Pass Filter
             %sensor{i, j}(:,k) = filter(Hd, sensor{i, j}(:,k));
-           
        end
    end
 end
@@ -364,39 +353,6 @@ for k=1:3
                       ones(1,5*2^k)];
 end;
 
-
-           
-%% Just try to train a patternet.
-% pat_net = cell(3,1);
-% 
-% for k=1:3
-%     pat_net{k} = patternnet(10);
-%     pat_net{k}.divideParam.trainRatio = 70/100;
-%     pat_net{k}.divideParam.valRatio = 15/100;
-%     pat_net{k}.divideParam.testRatio = 15/100;
-% 
-%     net_in = cell(1,3);
-% 
-%     net_in{1} = [features{1}{k,1};
-%                 features{2}{k,1};
-%                 features{3}{k,1}
-%                 features{4}{k,1}];
-%     net_in{2} = [features{1}{k,2};
-%                 features{2}{k,2};
-%                 features{3}{k,2}
-%                 features{4}{k,2}];
-%     net_in{3} = [features{1}{k,3};
-%                 features{2}{k,3};
-%                 features{3}{k,3}
-%                 features{4}{k,3}];
-%  
-%     pat_net{k} = train(pat_net{k},net_in{3},pat_targets{k});
-% 
-% end;
-
-%% We select 4 clusters from the dataset and we use them as features.
-
-%[idx, clust_c] = kmeans(sensor1', 4);
 %% Setup the GA for the features selection
 % For the moment we consider just the sensor1 dataset. For this first try
 % we consider the sensor output on a specific volunteer as a feature, so we
@@ -440,7 +396,7 @@ for i=1:3
          0 0 1 -1 zeros(1,94)];
     b = [-1; -1; -1];
 
-    [x, fval] = ga(fitnessFcn, nvar, A, b, [], [], [1; 1; 1; 1; ...
+    x = ga(fitnessFcn, nvar, A, b, [], [], [1; 1; 1; 1; ...
         -Inf*ones(94,1)], [15; 15; 15; 15; Inf*ones(94,1)], [], ...
         [1 2 3 4], options);
     
@@ -574,6 +530,10 @@ for i=1:4
         anfis_check{1,i});
 end;
 
+%% ------- Mamdani-type Inference System -------
+
+
+
 %% ******* Four-Class Classifier *******
 
 %% ------- Sugeno-type Inference System -------
@@ -617,3 +577,41 @@ sugeno_fis{5,1} = genfis2(anfis_train{1,5}(:,1:4), ...
     sugeno_fis{5,2}.chkFis,sugeno_fis{5,2}.chkErr] = ...
     anfis(anfis_train{1,5},sugeno_fis{5,1},trnOpt,dispOpt, ...
     anfis_check{1,5});
+
+
+%% ------- Mamdani-type Inference System -------
+% GA optimization trial.
+
+global mamdani;
+global mamdani_feat;
+global mamdani_all_targets;
+
+mamdani_feat = [feat_temp{4}{1,1}' feat_temp{5}{1,1}' feat_temp{11}{1,1}' ...
+    feat_temp{17}{1,1}'];
+
+mamdani_all_targets = [zeros(10,1); ones(10,1); 2*ones(10,1); 3*ones(10,1);];
+
+mamdani = readfis('Mamdani5.fis');
+
+A = [zeros(1,44) -1 -1 -1 -1 0 zeros(1,35);
+     zeros(1,49) -1 -1 -1 -1 0 zeros(1,30);
+     zeros(1,54) -1 -1 -1 -1 0 zeros(1,25);
+     zeros(1,59) -1 -1 -1 -1 0 zeros(1,20);
+     zeros(1,64) -1 -1 -1 -1 0 zeros(1,15);
+     zeros(1,69) -1 -1 -1 -1 0 zeros(1,10);
+     zeros(1,74) -1 -1 -1 -1 0 zeros(1,5);
+     zeros(1,79) -1 -1 -1 -1 0];
+ B = [-1; -1; -1; -1; -1; -1; -1; -1];
+
+fitnessFcn = @mamdani_all_fitness;
+nvar = 84;
+options = gaoptimset;
+options = gaoptimset(options,'TolFun', 1e-8, 'Generations', 100, ...
+    'OutputFcn', @ga_output, ...
+    'CreationFcn', @gacreationlinearfeasible, ...
+    'PlotFcns', @gaplotbestf);
+
+[x, fval] = ga(fitnessFcn, nvar, A, B, [], [], ...
+    [0.001*ones(44,1);zeros(39,1); 1],[Inf*ones(44,1); 3*ones(39,1); 4], [], ...
+    (45:84),options);
+

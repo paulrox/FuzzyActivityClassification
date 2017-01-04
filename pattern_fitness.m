@@ -15,13 +15,6 @@ pat_net = configure(pat_net, net_in, pat_targets{t_interval});
 pat_net = setwb(pat_net, x(5:98));
 net_out = pat_net(net_in);
 
-% if size(unique(x(1:4)),2) < 4
-%     penalty = 100;
-% else
-%     penalty = 0;
-% end;
-
-
 y = perform(pat_net,pat_targets{t_interval},net_out);
 
 end
