@@ -28,7 +28,7 @@ MF1='Z1':'gauss2mf',[0.00012 0.00539 0.000321 0.0204]
 MF2='Z2':'gauss2mf',[2.03e-05 0.0227 9.72e-05 0.051]
 
 [Input3]
-Name='Mean'
+Name='Mean_EnvL'
 Range=[-18000 0]
 NumMFs=3
 MF1='Z1':'gauss2mf',[51.8 -17400 0.383 -8320]
@@ -36,7 +36,7 @@ MF2='Z2':'gauss2mf',[49 -6963.44855794537 60.2 -5800]
 MF3='Z3':'gauss2mf',[33.1 -4620 49.8 -1240]
 
 [Input4]
-Name='ADDPP'
+Name='AF3P'
 Range=[0 0.7]
 NumMFs=3
 MF1='Z1':'gauss2mf',[0.0023 0.0466 0.00264 0.16]
