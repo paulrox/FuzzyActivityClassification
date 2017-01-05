@@ -8,12 +8,12 @@ feat_temp = extract_features2(sensor_filtered,1/82e-3)';
 %%
 sensor = 2;
 window = 1;
-feat = 16;
+feat = 17;
 
 label = 1
 
 
-for sensor=2:3
+for sensor=1:2
 features1 = add_label2(feat_temp{feat, 1}{window, sensor}, label);
 plot(features1(1,1), features1(2,1))
 

@@ -1,0 +1,60 @@
+[System]
+Name='MamdaniA2vsAll'
+Type='mamdani'
+Version=2.0
+NumInputs=4
+NumOutputs=1
+NumRules=7
+AndMethod='min'
+OrMethod='max'
+ImpMethod='min'
+AggMethod='max'
+DefuzzMethod='centroid'
+
+[Input1]
+Name='Bandwidth'
+Range=[0 5]
+NumMFs=4
+MF1='Z1':'gauss2mf',[0.0745 1.2 0.0566 1.61]
+MF2='Z2':'gauss2mf',[0.0668 1.659 0.124 2.95]
+MF3='Z3':'gauss2mf',[0.00600259757424116 3.32452431289641 0.0438 4.71]
+MF4='Z4':'gauss2mf',[0.0182 0.555 0.00436 0.676684674120014]
+
+[Input2]
+Name='ADP'
+Range=[0 0.1]
+NumMFs=2
+MF1='Z1':'gauss2mf',[0.00012 0.00539 0.000321 0.0204]
+MF2='Z2':'gauss2mf',[2.03e-05 0.0227 9.72e-05 0.051]
+
+[Input3]
+Name='Mean'
+Range=[-18000 0]
+NumMFs=3
+MF1='Z1':'gauss2mf',[51.8 -17400 0.383 -8320]
+MF2='Z2':'gauss2mf',[49 -6963.44855794537 60.2 -5800]
+MF3='Z3':'gauss2mf',[33.1 -4620 49.8 -1240]
+
+[Input4]
+Name='ADDPP'
+Range=[0 0.7]
+NumMFs=3
+MF1='Z1':'gauss2mf',[0.0023 0.0466 0.00264 0.16]
+MF2='Z2':'gauss2mf',[0.00152 0.17 0.0018 0.335]
+MF3='Z3':'gauss2mf',[0.000407 0.36 0.00495 0.603]
+
+[Output1]
+Name='Activity'
+Range=[0 5]
+NumMFs=2
+MF1='!A2':'gauss2mf',[0.00301 0.0687 0.0241 1]
+MF2='A2':'gauss2mf',[0.0148 1.05 0.0116 2]
+
+[Rules]
+1 2 0 0, 1 (1) : 1
+4 0 0 0, 2 (1) : 1
+2 0 0 0, 1 (1) : 1
+3 0 1 0, 1 (1) : 1
+3 0 2 1, 2 (1) : 1
+0 0 0 3, 2 (1) : 1
+-2 0 0 2, 1 (1) : 1
