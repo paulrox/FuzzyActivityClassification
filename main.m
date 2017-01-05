@@ -64,267 +64,104 @@ end;
 % The data has been stored ordering first the volunteer and then the
 % activity.
 
+%% Separate Data (Considering the union of the sensors signals)
+% The data is ordered by: Activity -> Sensor -> Volunteer
+
+sensor_union_raw = cell(3,1);
+
+% Time interval: 162 seconds.
+for i=1:4
+    for k=1:3
+        for j=1:10
+            sensor_union_raw{1} = [sensor_union_raw{1} data{i,j}(:,k)];
+        end;
+    end;
+end;
+
+% Time interval: 82 seconds.
+for i=1:4
+    for k=1:3
+        for j=1:10
+            sensor_union_raw{2} = [sensor_union_raw{2} ...
+                data{i,j}(1:1000,k) data{i,j}(1001:2000,k)];
+        end;
+    end;
+end;
+
+% Time interval: 41 seconds.
+for i=1:4
+    for k=1:3
+        for j=1:10
+            sensor_union_raw{3,1} = [sensor_union_raw{3} ...
+                data{i,j}(1:500,k) data{i,j}(501:1000,k) ...
+                data{i,j}(1001:1500,k) data{i,j}(1501:2000,k)];
+        end;
+    end;
+end;
+
 %% Signal Filtering.
 
 global sensor;
+global sensor_union;
 
 sensor = cell(3,3);
+sensor_union = cell(3,1);
 lpf = load('low_pass.mat');
 
 for i = 1:3
     for j = 1:3
         for k = 1:20*(2^i)
-            sensor{i, j}(:,k) = detrend(sensor_raw{i, j}(:,k));
-            %sensor{i, j}(:,k) = sgolayfilt(sensor{i, j}(:,k),5,41);
-            sensor{i, j}(:,k) = filter(lpf.Hd, sensor{i, j}(:,k));
-            %sensor{i, j}(:,k) = hampel(sensor{i,j}(:,k));
-            %sensor{i, j}(:,k) = medfilt1(sensor{i,j}(:,k),50);
-            % Hi-pass filter
-            %sensor{i,j}(:,k) = filter(Hd,sensor{i,j}(:,k));
-            % Low Pass Filter
-            %sensor{i, j}(:,k) = filter(Hd, sensor{i, j}(:,k));
-       end
-   end
-end
+            % sensor{i, j}(:,k) = detrend(sensor_raw{i, j}(:,k));
+            sensor{i, j}(:,k) = sensor_raw{i, j}(:,k) - ...
+                mean(sensor_raw{i, j}(:,k));
+            sensor{i, j}(:,k) = filter(lpf.Hd,sensor{i, j}(:,k));
+        end;
+    end;
+end;
+
+for i=1:3
+    for j=1:60*(2^i)
+        sensor_union{i}(:,j) = sensor_union_raw{i}(:,j) - ...
+            mean(sensor_union_raw{i}(:,j));
+        sensor_union{i}(:,j) = filter(lpf.Hd,sensor_union{i}(:,j));
+    end;
+end;
 
 
 %% Features extraction (Time Domain).
-global features_raw;
 
-features_raw = cell(15,1);
-
-% ---- Max Value ----
-
-feat_max = cell(3,3);
-
-for k=1:3
-    for i=1:3
-        for j=1:20*2^k
-            feat_max{k,i} = [feat_max{k,i} max(sensor{k,i}(:,j))];
-        end;
-    end;
-end;
-
-features_raw{1} = feat_max;
-
-% ---- Min Value ----
-
-feat_min = cell(3,3);
-
-for k=1:3
-    for i=1:3
-        for j=1:20*2^k
-            feat_min{k,i} = [feat_min{k,i} min(sensor{k,i}(:,j))];
-        end;
-    end;
-end;
-
-features_raw{2} = feat_min;
-
-% ---- Root-Mean-Square Level (RMS) ----
-
-feat_rms = cell(3,3);
-
-for k=1:3
-    for i=1:3
-        for j=1:20*2^k
-            feat_rms{k,i} = [feat_rms{k,i} rms(sensor{k,i}(:,j))];
-        end;
-    end;
-end;
-
-features_raw{3} = feat_rms;
-
-% ---- Variance ----
-
-feat_variance = cell(3,3);
-
-for k=1:3
-    for i=1:3
-        for j=1:20*2^k
-            feat_variance{k,i} = [feat_variance{k,i} var(sensor{k,i}(:,j))];
-        end;
-    end;
-end;
-
-features_raw{4} = feat_variance;
-
-% ---- Mean Value ----
-
-feat_mean = cell(3,3);
-
-for k=1:3
-    for i=1:3
-        for j=1:20*2^k
-            feat_mean{k,i} = [feat_mean{k,i} mean(sensor{k,i}(:,j))];
-        end;
-    end;
-end;
-
-features_raw{5} = feat_mean;
-
-% ---- Standard Deviation ----
-
-feat_std = cell(3,3);
-
-for k=1:3
-    for i=1:3
-        for j=1:20*2^k
-            feat_std{k,i} = [feat_std{k,i} std(sensor{k,i}(:,j))];
-        end;
-    end;
-end;
-
-features_raw{6} = feat_std;
-
-% ---- Peak to Peak ----
-
-feat_peak2peak = cell(3,3);
-
-for k=1:3
-    for i=1:3
-        for j=1:20*2^k
-            feat_peak2peak{k,i} = [feat_peak2peak{k,i} ...
-                peak2peak(sensor{k,i}(:,j))];
-        end;
-    end;
-end;
-
-features_raw{7} = feat_peak2peak;
-
-% ---- Peak to RMS ----
-
-feat_peak2rms = cell(3,3);
-
-for k=1:3
-    for i=1:3
-        for j=1:20*2^k
-            feat_peak2rms{k,i} = [feat_peak2rms{k,i} ...
-                peak2rms(sensor{k,i}(:,j))];
-        end;
-    end;
-end;
-
-features_raw{8} = feat_peak2rms;
-
-% ----Mid-crossing----
-% The function midcross stores the time instants in which the signals
-% crosses the 50% reference level. We compute the difference of such time
-% instants to discover the interval from a crossing to the next one.
-% Finally we compute the variance on that intervals and we use that as
-% feature.
-% For the moment we skip the signals from the first activity of the first
-% volunteer beacuse the timestamps are messed up.
-feat_midcross = cell(3,3);
-
-for k=1:3
-    for i=1:3
-        for j=1:20*2^k
-            if (j==2^k)
-                feat_midcross{k,i} = [feat_midcross{k,i} NaN];
-            else
-                feat_midcross{k,i} = [feat_midcross{k,i} ...
-                    var(diff(midcross(sensor{k,i}(:,j), ...
-                    timestamps{k}(:,j))))];
-            end;
-        end;
-    end;
-end;
-
-% Replace NaNs with the mean value.
-
-midcross_sub = cell(1,4);
-
-% Compute the mean of the numeric values.
-for k=1:3
-    for i=1:3
-        for j=1:4
-            midcross_sub{j} = feat_midcross{k,i}((5*2^k)*(j-1)+1:(5*2^k)*j);
-            notNaN = midcross_sub{j}(~isnan(midcross_sub{j}));
-            notNaN_mean = mean(notNaN);
-            midcross_sub{j}(isnan(midcross_sub{j})) = notNaN_mean;
-            % Substitute all the NaNs with the mean value.
-            feat_midcross{k,i}((5*2^k)*(j-1)+1:(5*2^k)*j) = midcross_sub{j};
-        end;
-    end;
-end;
-
-features_raw{9} = feat_midcross;
-
-% ----Similarity of Signals patterns----
-% In practice, we compare the first half of the signal with the second half
-% and we take the distance between them.
-
-feat_dtw = cell(3,3);
-
-for k=1:3
-    for i=1:3
-        for j=1:20*2^k
-            feat_dtw{k,i} = [feat_dtw{k,i} dtw(sensor{k,i}(1:1000/2^(k-1),j),...
-                sensor{k,i}(1000/2^(k-1)+1:2000/2^(k-1),j))];
-        end;
-    end;
-end;
-
-features_raw{10} = feat_dtw;
+features_TD = extract_TD_features(sensor);
+features_union_TD = extract_union_TD_features(sensor_union);
 
 %% Features extraction (Frequency Domain)
 
 % Sampling frequency
 Fs = 1 / 0.082;
 
-% ---- Bandwidth ----
-
-feat_band = extract_bandwidth(sensor,Fs);
-features_raw{11} = feat_band;
-
-% ---- Max Peak Frequency ----
-% Find the frequency which corresponds to the max peak in the frequency
-% domain.
-
-feat_maxpeak = extract_fmaxpeak(sensor,Fs);
-features_raw{12} = feat_maxpeak;
-
-% ---- Average Power ----
-% Average power of the signals.
-
-feat_pow = extract_bandpower(sensor);
-features_raw{13} = feat_pow;
-
-% ---- Peaks distance ----
-% Find the average distance between peaks in the signal..
-
-feat_peakdist = extract_averagedistance_peaks(sensor,Fs);
-features_raw{14} = feat_peakdist;
-
-% ---- Mean Frequency ----
-
-feat_meanfreq = cell(3,3);
-
-for k=1:3
-    for i=1:3
-        for j=1:20*2^k
-            feat_meanfreq{k,i} = [feat_meanfreq{k,i} ...
-                meanfreq(sensor{k,i}(:,j))];
-        end;
-    end;
-end;
-
-features_raw{15} = feat_dtw;
+features_FD = extract_FD_features(sensor,Fs);
+features_union_FD = extract_union_FD_features(sensor_union,Fs);
 
 %% Features Normalization
 
 global features;
+global features_union;
 
-features = features_raw;
+features_raw = [features_TD'; features_FD'];
+features_union_raw = [features_union_TD'; features_union_FD'];
+features = cell(22,1);
+features_union = cell(22,1);
 
-for i=1:15
+for i=1:22
     for k=1:3
         for j=1:3
             feat_m =  mean(features_raw{i}{k,j});
             feat_std = std(features_raw{i}{k,j});
             features{i}{k,j} = (features_raw{i}{k,j}-feat_m)/feat_std;
         end;
+        feat_union_m = mean(features_union_raw{i}{k});
+        feat_union_std = std(features_union_raw{i}{k});
+        features_union{i}{k} = (features_union_raw{i}{k}-feat_union_m)/ ...
+            feat_union_std;
     end;
 end;
 
@@ -339,21 +176,25 @@ end;
 % 4 - stairs climbing.
 
 global pat_targets;
+global pat_union_targets;
 
 pat_targets = cell(3,1);
+pat_union_targets = cell(3,1);
 
 for k=1:3
     pat_targets{k} = [ones(1,5*2^k) zeros(1,5*2^k) zeros(1,5*2^k) ...
-                      zeros(1,5*2^k);
-                      zeros(1,5*2^k) ones(1,5*2^k) zeros(1,5*2^k) ...
-                      zeros(1,5*2^k);
-                      zeros(1,5*2^k) zeros(1,5*2^k) ones(1,5*2^k) ...
-                      zeros(1,5*2^k);
-                      zeros(1,5*2^k) zeros(1,5*2^k) zeros(1,5*2^k) ...
-                      ones(1,5*2^k)];
+        zeros(1,5*2^k);
+        zeros(1,5*2^k) ones(1,5*2^k) zeros(1,5*2^k) zeros(1,5*2^k);
+        zeros(1,5*2^k) zeros(1,5*2^k) ones(1,5*2^k) zeros(1,5*2^k);
+        zeros(1,5*2^k) zeros(1,5*2^k) zeros(1,5*2^k) ones(1,5*2^k)];
+    pat_union_targets{k} = [ones(1,15*2^k) zeros(1,15*2^k) ...
+        zeros(1,15*2^k) zeros(1,15*2^k);
+        zeros(1,15*2^k) ones(1,15*2^k) zeros(1,15*2^k) zeros(1,15*2^k);
+        zeros(1,15*2^k) zeros(1,15*2^k) ones(1,15*2^k) zeros(1,15*2^k);
+        zeros(1,15*2^k) zeros(1,15*2^k) zeros(1,15*2^k) ones(1,15*2^k)];
 end;
 
-%% Setup the GA for the features selection
+%% Features selection (Indipendet Datasets)
 % For the moment we consider just the sensor1 dataset. For this first try
 % we consider the sensor output on a specific volunteer as a feature, so we
 % want to find the best sensor outputs by selecting one for each possible
@@ -368,46 +209,90 @@ global history;
 history = struct;
 pat_nets = cell(3,3);
 
-for i=1:3
+for execution=1:5
+    for i=1:3
+        
+        sens_num = i;
+        t_interval = 1;
+        
+        pat_net = patternnet(10);
+        
+        fitnessFcn = @pattern_fitness;
+        nvar = 98;
+        options = gaoptimset;
+        options = gaoptimset(options,'TolFun', 1e-8, 'Generations', 300, ...
+            'OutputFcn', @ga_output, ...
+            'Display', 'iter', ...
+            'StallGenLimit', 75);
+        
+        % Linear inequalities, necessary to avoid solutions with the same
+        % feature more than one time.
+        A = [1 -1 0 0 zeros(1,94);
+            0 1 -1 0 zeros(1,94);
+            0 0 1 -1 zeros(1,94)];
+        b = [-1; -1; -1];
+        
+        x = ga(fitnessFcn, nvar, A, b, [], [], [1; 1; 1; 1; ...
+            -Inf*ones(94,1)], [22; 22; 22; 22; Inf*ones(94,1)], [], ...
+            [1 2 3 4], options);
+        
+        pat_nets{i,1} = pat_net;
+        pat_nets{i,1} = setwb(pat_nets{i,1}, x(5:98));
+        pat_nets{i,2} = history;
+        pat_nets{i,3} = x(1:4);
+        
+    end;
+    save(['GA_IND_' num2str(execution)]);
+end;
+
+%% Features selection (Union of signals)
+% For the moment we consider just the sensor1 dataset. For this first try
+% we consider the sensor output on a specific volunteer as a feature, so we
+% want to find the best sensor outputs by selecting one for each possible
+% activity. In other words, we will obtain the four indicies which
+% represents the columns in the sensor dataset.
+
+global pat_union_net;
+global pat_union_nets;
+global t_interval_union;
+
+history = struct;
+pat_union_nets = cell(3,1);
+
+for execution=1:5
     
-    sens_num = i;
-    t_interval = 1;
-
-    pat_net = patternnet(10);
-    pat_net.divideParam.trainRatio = 70/100;
-    pat_net.divideParam.valRatio = 15/100;
-    pat_net.divideParam.testRatio = 15/100;
-
-    fitnessFcn = @pattern_fitness;
+    t_interval_union = 1;
+    
+    pat_union_net = patternnet(10);
+    
+    fitnessFcn = @pattern_union_fitness;
     nvar = 98;
     options = gaoptimset;
     options = gaoptimset(options,'TolFun', 1e-8, 'Generations', 300, ...
-    'SelectionFcn', @selectionroulette, ...
-    'CrossoverFcn', @crossoversinglepoint, ...
-    'MutationFcn', @mutationgaussian, ...
-    'OutputFcn', @ga_output, ...
-    'CreationFcn', @gacreationlinearfeasible, ...
-    'PlotFcns', @gaplotbestf);
-
+        'OutputFcn', @ga_output, ...
+        'Display', 'iter', ...
+        'StallGenLimit', 75);
+    
     % Linear inequalities, necessary to avoid solutions with the same
     % feature more than one time.
     A = [1 -1 0 0 zeros(1,94);
-         0 1 -1 0 zeros(1,94);
-         0 0 1 -1 zeros(1,94)];
+        0 1 -1 0 zeros(1,94);
+        0 0 1 -1 zeros(1,94)];
     b = [-1; -1; -1];
-
+    
     x = ga(fitnessFcn, nvar, A, b, [], [], [1; 1; 1; 1; ...
-        -Inf*ones(94,1)], [15; 15; 15; 15; Inf*ones(94,1)], [], ...
+        -Inf*ones(94,1)], [22; 22; 22; 22; Inf*ones(94,1)], [], ...
         [1 2 3 4], options);
     
-    pat_nets{i,1} = pat_net;
-    pat_nets{i,1} = setwb(pat_nets{i,1}, x(5:98));
-    pat_nets{i,2} = history;
-    pat_nets{i,3} = x(1:4);
+    pat_union_nets{i,1} = pat_union_net;
+    pat_union_nets{i,1} = setwb(pat_union_nets{i,1}, x(5:98));
+    pat_union_nets{i,2} = history;
+    pat_union_nets{i,3} = x(1:4);
     
+    save(['GA_UNION_' num2str(execution)]);
 end;
 
-%% Choose the best sensor.
+%% Find the best sensor (Indipendent datasets).
 % We evaluate the patternet performances using the confusion matrix and we
 % choose the sensor by which we obtain the best value.
 
@@ -424,12 +309,12 @@ end;
 
 best_sensor = find(pat_confusion==min(pat_confusion));
 
-%% Select the features obtained from the GA for the best sensor.
+%% Select the features obtained from the GA (Indipendent datasets).
 
 best_feat = pat_nets{best_sensor,3};
 selected_tmp = cell(3,1);
 
-for i=1:15
+for i=1:22
     selected_tmp{1} = [selected_tmp{1} features{i}{1,best_sensor}'];
     selected_tmp{2} = [selected_tmp{2} features{i}{2,best_sensor}'];
     selected_tmp{3} = [selected_tmp{3} features{i}{3,best_sensor}'];
@@ -440,6 +325,35 @@ selected_features = cell(3,1);
 selected_features{1} = selected_tmp{1}(:,best_feat);
 selected_features{2} = selected_tmp{2}(:,best_feat);
 selected_features{3} = selected_tmp{3}(:,best_feat);
+
+%% Select the features obtained from the GA (Union of signals).
+
+net_in = [features_union{pat_union_nets{1,3}(1)}{t_interval_union};
+    features_union{pat_union_nets{1,3}(2)}{t_interval_union};
+    features_union{pat_union_nets{1,3}(3)}{t_interval_union};
+    features_union{pat_union_nets{1,3}(4)}{t_interval_union}];
+net_out = pat_union_nets{1,1}(net_in);
+
+% Confusion matrix.
+pat_union_confusion = confusion(pat_union_targets{t_interval_union},net_out);
+
+best_union_feat = pat_union_nets{1,3};
+selected_union_tmp = cell(3,1);
+
+for i=1:22
+    selected_union_tmp{1} = [selected_union_tmp{1} ...
+        features_union{i}{1}'];
+    selected_union_tmp{2} = [selected_union_tmp{2} ...
+        features_union{i}{2}'];
+    selected_union_tmp{3} = [selected_union_tmp{3} ...
+        features_union{i}{3}'];
+end;
+
+selected_union_features = cell(3,1);
+
+selected_union_features{1} = selected_union_tmp{1}(:,best_union_feat);
+selected_union_features{2} = selected_union_tmp{2}(:,best_union_feat);
+selected_union_features{3} = selected_union_tmp{3}(:,best_union_feat);
 
 %% ******* One-against-all Classifiers *******
 
