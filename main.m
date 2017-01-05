@@ -112,28 +112,52 @@ for i = 1:3
     for j = 1:3
         for k = 1:20*(2^i)
             % sensor{i, j}(:,k) = detrend(sensor_raw{i, j}(:,k));
-            sensor{i, j}(:,k) = sensor_raw{i, j}(:,k) - ...
-                mean(sensor_raw{i, j}(:,k));
-            sensor{i, j}(:,k) = filter(lpf.Hd,sensor{i, j}(:,k));
+            sensor{i, j}(:,k) = filter(lpf.Hd,sensor_raw{i, j}(:,k));
+            sensor{i, j}(:,k) = sensor{i, j}(:,k) - ...
+                mean(sensor{i, j}(:,k));  
         end;
     end;
 end;
 
 for i=1:3
     for j=1:60*(2^i)
-        sensor_union{i}(:,j) = sensor_union_raw{i}(:,j) - ...
-            mean(sensor_union_raw{i}(:,j));
-        sensor_union{i}(:,j) = filter(lpf.Hd,sensor_union{i}(:,j));
+        sensor_union{i}(:,j) = filter(lpf.Hd,sensor_union_raw{i}(:,j));
+        sensor_union{i}(:,j) = sensor_union{i}(:,j) - ...
+            mean(sensor_union{i}(:,j));
     end;
 end;
 
 
-%% Features extraction (Time Domain).
+%% Features extraction (Time Domain)
+% Time domain features:
+% 1: Max value;
+% 2: Min value;
+% 3: Root-Mean-Square level (RMS);
+% 4: Mean value;
+% 5: Variance;
+% 6: Standard deviation;
+% 7: Peak to peak;
+% 8: Peak to RMS; 
+% 9: Mean of upper envelope;
+% 10: Mean of lower envelope;
+% 11: Similarity of signal patterns;
+% 12: Sum of aplitudes below 25%;
+% 13: Sum of amplitudes below 75%;
+% 14: Root-Sum-of-Squares.
 
 features_TD = extract_TD_features(sensor);
 features_union_TD = extract_union_TD_features(sensor_union);
 
 %% Features extraction (Frequency Domain)
+% Frequency domain  features:
+% 15: Sum of spectrum components;
+% 16: Number of peak in spectrum;
+% 17: Bandwidth;
+% 18: Average peaks distances;
+% 19: Average power;
+% 20: Average distances in power density signal;
+% 21: Average frequency of the 3 peaks with more amplitude;
+% 22: Sum of amplitudes in power density.
 
 % Sampling frequency
 Fs = 1 / 0.082;
@@ -446,7 +470,57 @@ end;
 
 %% ------- Mamdani-type Inference System -------
 
+load('MamdaniA1vsAll.mat');
+load('MamdaniA2vsAll.mat');
+load('MamdaniA3vsAll.mat');
+load('MamdaniA4vsAll.mat');
 
+mamdani_fis = cell(5,1);
+
+mamdani_fis{1} = MamdaniA1vsAll;
+mamdani_fis{2} = MamdaniA2vsAll;
+mamdani_fis{3} = MamdaniA3vsAll;
+mamdani_fis{4} = MamdaniA4vsAll;
+
+% For mamdani we selected the following features:
+% - Bandwidth
+% - Average peak distances in power spectrum.
+% - Mean value of the lower envelope of the signals.
+% - Average frequency of the 3 peaks with more amplitude in frequency
+%   domanin.
+mamdani_feat_index = [17 18 10 21];
+
+mamdani_in = [features_raw{mamdani_feat_index(1),1}{1,1};
+              features_raw{mamdani_feat_index(2),1}{1,1};
+              features_raw{mamdani_feat_index(3),1}{1,1};
+              features_raw{mamdani_feat_index(4),1}{1,1}];
+
+% Compute the outputs and performance of the Mamdani FIS.
+mamdani_outputs = cell(5,2);
+mamdani_perf = cell(5,1);
+for i=1:4
+    mamdani_outputs{i} = evalfis(mamdani_in,mamdani_fis{i});
+    for j=1:40
+        if mamdani_outputs{i,1}(j) >= 0 && mamdani_outputs{i,1}(j) < 1
+            mamdani_outputs{i,2}(j,1) = 1;
+        elseif mamdani_outputs{i,1}(j) >= 1 && mamdani_outputs{i,1}(j) < 2
+            mamdani_outputs{i,2}(j,1) = 2;
+        elseif mamdani_outputs{i,1}(j) >= 2 && mamdani_outputs{i,1}(j) < 3
+            mamdani_outputs{i,2}(j,1) = 3;
+        else
+            mamdani_outputs{i,2}(j,1) = 4;
+        end;
+    end;
+    % Clean the filtered output vectors.
+    mamdani_outputs{i,2}(mamdani_outputs{i,2}~=i) = 0;
+    mamdani_outputs{i,2}(mamdani_outputs{i,2}==i) = 1;
+    
+    % Compute TPR and FNR.
+    mamdani_perf{i} = struct;
+    mamdani_perf{i}.TPR = sum(pat_targets{1}(i,:)'== ...
+        mamdani_outputs{i,2}) / 40;
+    mamdani_perf{i}.FNR = 1 - mamdani_perf{i}.TPR;
+end;
 
 %% ******* Four-Class Classifier *******
 
@@ -494,38 +568,61 @@ sugeno_fis{5,1} = genfis2(anfis_train{1,5}(:,1:4), ...
 
 
 %% ------- Mamdani-type Inference System -------
-% GA optimization trial.
 
-global mamdani;
-global mamdani_feat;
-global mamdani_all_targets;
+load('MamdaniAllvsAll.mat');
 
-mamdani_feat = [feat_temp{4}{1,1}' feat_temp{5}{1,1}' feat_temp{11}{1,1}' ...
-    feat_temp{17}{1,1}'];
+mamdani_fis{5} = MamdaniAllvsAll;
 
-mamdani_all_targets = [zeros(10,1); ones(10,1); 2*ones(10,1); 3*ones(10,1);];
+mamdani_outputs{5} = evalfis(mamdani_in,mamdani_fis{5});
+for j=1:40
+    if mamdani_outputs{5,1}(j) >= 0 && mamdani_outputs{5,1}(j) < 1
+        mamdani_outputs{5,2}(j,1) = 1;
+    elseif mamdani_outputs{5,1}(j) >= 1 && mamdani_outputs{5,1}(j) < 2
+        mamdani_outputs{5,2}(j,1) = 2;
+    elseif mamdani_outputs{5,1}(j) >= 2 && mamdani_outputs{5,1}(j) < 3
+        mamdani_outputs{5,2}(j,1) = 3;
+    else
+        mamdani_outputs{5,2}(j,1) = 4;
+    end;
+end;
 
-mamdani = readfis('Mamdani5.fis');
+% Compute TPR and FNR.
+mamdani_perf{5} = struct;
+mamdani_perf{5}.TPR = sum(all_targets{1}==mamdani_outputs{5,2}) / 40;
+mamdani_perf{5}.FNR = 1 - mamdani_perf{5}.TPR;
 
-A = [zeros(1,44) -1 -1 -1 -1 0 zeros(1,35);
-     zeros(1,49) -1 -1 -1 -1 0 zeros(1,30);
-     zeros(1,54) -1 -1 -1 -1 0 zeros(1,25);
-     zeros(1,59) -1 -1 -1 -1 0 zeros(1,20);
-     zeros(1,64) -1 -1 -1 -1 0 zeros(1,15);
-     zeros(1,69) -1 -1 -1 -1 0 zeros(1,10);
-     zeros(1,74) -1 -1 -1 -1 0 zeros(1,5);
-     zeros(1,79) -1 -1 -1 -1 0];
- B = [-1; -1; -1; -1; -1; -1; -1; -1];
-
-fitnessFcn = @mamdani_all_fitness;
-nvar = 84;
-options = gaoptimset;
-options = gaoptimset(options,'TolFun', 1e-8, 'Generations', 100, ...
-    'OutputFcn', @ga_output, ...
-    'CreationFcn', @gacreationlinearfeasible, ...
-    'PlotFcns', @gaplotbestf);
-
-[x, fval] = ga(fitnessFcn, nvar, A, B, [], [], ...
-    [0.001*ones(44,1);zeros(39,1); 1],[Inf*ones(44,1); 3*ones(39,1); 4], [], ...
-    (45:84),options);
+% % GA optimization trial.
+% 
+% global mamdani;
+% global mamdani_feat;
+% global mamdani_all_targets;
+% 
+% mamdani_feat = [feat_temp{4}{1,1}' feat_temp{5}{1,1}' feat_temp{11}{1,1}' ...
+%     feat_temp{17}{1,1}'];
+% 
+% mamdani_all_targets = [zeros(10,1); ones(10,1); 2*ones(10,1); 3*ones(10,1);];
+% 
+% mamdani = readfis('Mamdani5.fis');
+% 
+% A = [zeros(1,44) -1 -1 -1 -1 0 zeros(1,35);
+%      zeros(1,49) -1 -1 -1 -1 0 zeros(1,30);
+%      zeros(1,54) -1 -1 -1 -1 0 zeros(1,25);
+%      zeros(1,59) -1 -1 -1 -1 0 zeros(1,20);
+%      zeros(1,64) -1 -1 -1 -1 0 zeros(1,15);
+%      zeros(1,69) -1 -1 -1 -1 0 zeros(1,10);
+%      zeros(1,74) -1 -1 -1 -1 0 zeros(1,5);
+%      zeros(1,79) -1 -1 -1 -1 0];
+%  B = [-1; -1; -1; -1; -1; -1; -1; -1];
+% 
+% fitnessFcn = @mamdani_all_fitness;
+% nvar = 84;
+% options = gaoptimset;
+% options = gaoptimset(options,'TolFun', 1e-8, 'Generations', 100, ...
+%     'OutputFcn', @ga_output, ...
+%     'CreationFcn', @gacreationlinearfeasible, ...
+%     'PlotFcns', @gaplotbestf);
+% 
+% [x, fval] = ga(fitnessFcn, nvar, A, B, [], [], ...
+%     [0.001*ones(44,1);zeros(39,1); 1],[Inf*ones(44,1); 3*ones(39,1); 4], [], ...
+%     (45:84),options);
 
