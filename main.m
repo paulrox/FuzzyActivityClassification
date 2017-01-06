@@ -201,7 +201,11 @@ end;
 
 global pat_targets;
 global pat_union_targets;
+global t_interval;
+global t_interval_union;
 
+t_interval = 1;
+t_interval_union = 1;
 pat_targets = cell(3,1);
 pat_union_targets = cell(3,1);
 
@@ -225,49 +229,51 @@ end;
 % activity. In other words, we will obtain the four indicies which
 % represents the columns in the sensor dataset.
 
-global pat_net;
-global pat_nets;
-global sens_num t_interval;
-global history;
+% global pat_net;
+% global pat_nets;
+% global sens_num;
+% global history;
 
-history = struct;
-pat_nets = cell(3,3);
+% history = struct;
+% pat_nets = cell(3,3);
+% 
+% for execution=1:5
+%     for i=1:3
+%         
+%         sens_num = i;
+%         
+%         pat_net = patternnet(10);
+%         
+%         fitnessFcn = @pattern_fitness;
+%         nvar = 98;
+%         options = gaoptimset;
+%         options = gaoptimset(options,'TolFun', 1e-8, 'Generations', 300, ...
+%             'OutputFcn', @ga_output, ...
+%             'Display', 'iter', ...
+%             'StallGenLimit', 75);
+%         
+%         % Linear inequalities, necessary to avoid solutions with the same
+%         % feature more than one time.
+%         A = [1 -1 0 0 zeros(1,94);
+%             0 1 -1 0 zeros(1,94);
+%             0 0 1 -1 zeros(1,94)];
+%         b = [-1; -1; -1];
+%         
+%         x = ga(fitnessFcn, nvar, A, b, [], [], [1; 1; 1; 1; ...
+%             -Inf*ones(94,1)], [22; 22; 22; 22; Inf*ones(94,1)], [], ...
+%             [1 2 3 4], options);
+%         
+%         pat_nets{i,1} = pat_net;
+%         pat_nets{i,1} = setwb(pat_nets{i,1}, x(5:98));
+%         pat_nets{i,2} = history;
+%         pat_nets{i,3} = x(1:4);
+%         
+%     end;
+%      save(['GA_IND_' num2str(execution)]);
+% end;
 
-for execution=1:5
-    for i=1:3
-        
-        sens_num = i;
-        t_interval = 1;
-        
-        pat_net = patternnet(10);
-        
-        fitnessFcn = @pattern_fitness;
-        nvar = 98;
-        options = gaoptimset;
-        options = gaoptimset(options,'TolFun', 1e-8, 'Generations', 300, ...
-            'OutputFcn', @ga_output, ...
-            'Display', 'iter', ...
-            'StallGenLimit', 75);
-        
-        % Linear inequalities, necessary to avoid solutions with the same
-        % feature more than one time.
-        A = [1 -1 0 0 zeros(1,94);
-            0 1 -1 0 zeros(1,94);
-            0 0 1 -1 zeros(1,94)];
-        b = [-1; -1; -1];
-        
-        x = ga(fitnessFcn, nvar, A, b, [], [], [1; 1; 1; 1; ...
-            -Inf*ones(94,1)], [22; 22; 22; 22; Inf*ones(94,1)], [], ...
-            [1 2 3 4], options);
-        
-        pat_nets{i,1} = pat_net;
-        pat_nets{i,1} = setwb(pat_nets{i,1}, x(5:98));
-        pat_nets{i,2} = history;
-        pat_nets{i,3} = x(1:4);
-        
-    end;
-    save(['GA_IND_' num2str(execution)]);
-end;
+% Load the pre-computed best result.
+load('ga_ind_best.mat');
 
 %% Features selection (Union of signals)
 % For the moment we consider just the sensor1 dataset. For this first try
@@ -276,45 +282,46 @@ end;
 % activity. In other words, we will obtain the four indicies which
 % represents the columns in the sensor dataset.
 
-global pat_union_net;
-global pat_union_nets;
-global t_interval_union;
+% global pat_union_net;
+% global pat_union_nets;
+% 
+% history = struct;
+% pat_union_nets = cell(3,1);
+% 
+% for execution=1:5
+%     
+%     
+%     pat_union_net = patternnet(10);
+%     
+%     fitnessFcn = @pattern_union_fitness;
+%     nvar = 98;
+%     options = gaoptimset;
+%     options = gaoptimset(options,'TolFun', 1e-8, 'Generations', 300, ...
+%         'OutputFcn', @ga_output, ...
+%         'Display', 'iter', ...
+%         'StallGenLimit', 75);
+%     
+%     % Linear inequalities, necessary to avoid solutions with the same
+%     % feature more than one time.
+%     A = [1 -1 0 0 zeros(1,94);
+%         0 1 -1 0 zeros(1,94);
+%         0 0 1 -1 zeros(1,94)];
+%     b = [-1; -1; -1];
+%     
+%     x = ga(fitnessFcn, nvar, A, b, [], [], [1; 1; 1; 1; ...
+%         -Inf*ones(94,1)], [22; 22; 22; 22; Inf*ones(94,1)], [], ...
+%         [1 2 3 4], options);
+%     
+%     pat_union_nets{1,1} = pat_union_net;
+%     pat_union_nets{1,1} = setwb(pat_union_nets{1,1}, x(5:98));
+%     pat_union_nets{1,2} = history;
+%     pat_union_nets{1,3} = x(1:4);
+% 
+%     save(['GA_UNION_' num2str(execution)]);
+% end;
 
-history = struct;
-pat_union_nets = cell(3,1);
-
-for execution=1:5
-    
-    t_interval_union = 1;
-    
-    pat_union_net = patternnet(10);
-    
-    fitnessFcn = @pattern_union_fitness;
-    nvar = 98;
-    options = gaoptimset;
-    options = gaoptimset(options,'TolFun', 1e-8, 'Generations', 300, ...
-        'OutputFcn', @ga_output, ...
-        'Display', 'iter', ...
-        'StallGenLimit', 75);
-    
-    % Linear inequalities, necessary to avoid solutions with the same
-    % feature more than one time.
-    A = [1 -1 0 0 zeros(1,94);
-        0 1 -1 0 zeros(1,94);
-        0 0 1 -1 zeros(1,94)];
-    b = [-1; -1; -1];
-    
-    x = ga(fitnessFcn, nvar, A, b, [], [], [1; 1; 1; 1; ...
-        -Inf*ones(94,1)], [22; 22; 22; 22; Inf*ones(94,1)], [], ...
-        [1 2 3 4], options);
-    
-    pat_union_nets{i,1} = pat_union_net;
-    pat_union_nets{i,1} = setwb(pat_union_nets{i,1}, x(5:98));
-    pat_union_nets{i,2} = history;
-    pat_union_nets{i,3} = x(1:4);
-    
-    save(['GA_UNION_' num2str(execution)]);
-end;
+% Load the pre-computed best result.
+load('ga_union_best.mat');
 
 %% Find the best sensor (Indipendent datasets).
 % We evaluate the patternet performances using the confusion matrix and we
@@ -453,30 +460,58 @@ end;
 
 sugeno_fis = cell(1,3);
 sugeno_outputs = cell(1,3);
+sugeno_perf = cell(1,3);
 
-trnOpt = [20 0 0.01 0.9 1.1];
-dispOpt = [NaN NaN NaN NaN];
+trnOpt = [40 0 0.01 0.9 1.1];
+dispOpt = [0 0 0 0];
 
 % 'k' time interval.
 for k=1:3
     sugeno_fis{k} = cell(5,2);
-    sugeno_outputs{k} = cell(5,1);
+    sugeno_outputs{k} = cell(5,2);
+    sugeno_perf{k} = cell(5,1);
     % Activity 'i' vs. All.
     for i=1:4
         sugeno_fis{k}{i,2} = struct('error',[],'stepsize',[],'chkFis',[],...
             'chkErr',[]);
-        sugeno_fis{k}{i,1} = genfis2(anfis_train{k,i}(:,1:4), ...
-            anfis_train{k,i}(:,5),0.5);
-        [sugeno_fis{k}{i,1},sugeno_fis{k}{i,2}.error,sugeno_fis{k}{i,2}.stepsize,...
-            sugeno_fis{k}{i,2}.chkFis,sugeno_fis{k}{i,2}.chkErr] = ...
-            anfis(anfis_train{k,i},sugeno_fis{k}{i,1},trnOpt,dispOpt, ...
-            anfis_check{k,i});
+        sugeno_fis{k}{i,1} = genfis1(anfis_train{k,i},3,'pimf', ...
+            'constant');
+%         sugeno_fis{k}{i,1} = genfis2(anfis_train{k,i}(:,1:4), ...
+%             anfis_train{k,i}(:,5),0.3);
+%         sugeno_fis{5,1} = genfis3(anfis_train{k,i}(:,1:4), ...
+%             anfis_train{k,i}(:,5),'sugeno');
+        
+        check_errors = zeros(10,1);
+        sugeno_tmp = cell(10,2);
+        for j=1:10
+            [sugeno_fis{k}{i,1},sugeno_fis{k}{i,2}.error,sugeno_fis{k}{i,2}.stepsize,...
+                sugeno_fis{k}{i,2}.chkFis,sugeno_fis{k}{i,2}.chkErr] = ...
+                anfis(anfis_train{k,i},sugeno_fis{k}{i,1},trnOpt,dispOpt, ...
+                anfis_check{k,i});
+            sugeno_tmp{j,1} = sugeno_fis{k}{i,1};
+            sugeno_tmp{j,2} = sugeno_fis{k}{i,2};
+            check_errors(j) = sugeno_fis{k}{i,2}.chkErr(end);           
+        end;
+        anfis_best = find(check_errors==min(check_errors));
+        sugeno_fis{k}{i,1} = sugeno_tmp{anfis_best,1};
+        sugeno_fis{k}{i,2} = sugeno_tmp{anfis_best,2};
         sugeno_outputs{k}{i,1} = evalfis(anfis_test{k,i}(:,1:4), ...
             sugeno_fis{k}{i,1});
+        % Filter the outputs.
+        for j=1:3*2^k
+            if sugeno_outputs{k}{i,1}(j) <= 0.5
+                sugeno_outputs{k}{i,2}(j,1) = 0;
+            else
+                sugeno_outputs{k}{i,2}(j,1) = 1;
+            end;
+        end;
+        % Evaluate the performance.
+        sugeno_perf{k}{i} = struct;
+        sugeno_perf{k}{i}.TPR = sum(anfis_test{k,i}(:,5)== ...
+        sugeno_outputs{k}{i,2}) / (3*2^k);
+        sugeno_perf{k}{i}.FNR = 1 - sugeno_perf{k}{i}.TPR;
     end;
 end;
-
-% Evaluate the performance.
 
 
 %% ------- Mamdani-type Inference System -------
@@ -506,31 +541,50 @@ mamdani_in = [features_raw{mamdani_feat_index(1),1}{1,1};
               features_raw{mamdani_feat_index(3),1}{1,1};
               features_raw{mamdani_feat_index(4),1}{1,1}];
 
+mamdani_test = mamdani_in(:,testing_indicies{1});
+
 % Compute the outputs and performance of the Mamdani FIS.
-mamdani_outputs = cell(5,2);
-mamdani_perf = cell(5,1);
+mamdani_outputs = cell(5,4);
+mamdani_perf = cell(5,2);
 for i=1:4
-    mamdani_outputs{i} = evalfis(mamdani_in,mamdani_fis{i});
-    for j=1:40
-        if mamdani_outputs{i,1}(j) >= 0 && mamdani_outputs{i,1}(j) < 1
-            mamdani_outputs{i,2}(j,1) = 1;
-        elseif mamdani_outputs{i,1}(j) >= 1 && mamdani_outputs{i,1}(j) < 2
-            mamdani_outputs{i,2}(j,1) = 2;
-        elseif mamdani_outputs{i,1}(j) >= 2 && mamdani_outputs{i,1}(j) < 3
-            mamdani_outputs{i,2}(j,1) = 3;
+    % Compute the FIS outputs.
+    mamdani_outputs{i,1} = evalfis(mamdani_in,mamdani_fis{i});
+    mamdani_outputs{i,3} = evalfis(mamdani_test,mamdani_fis{i});
+    % Filter the outputs.
+    for k=1:2:3
+        if k==1
+            last_input = 40;
         else
-            mamdani_outputs{i,2}(j,1) = 4;
+            last_input = 6;
         end;
+        for j=1:last_input
+            if mamdani_outputs{i,k}(j) >= 0 && mamdani_outputs{i,k}(j) < 1
+                mamdani_outputs{i,k+1}(j,1) = 1;
+            elseif mamdani_outputs{i,k}(j) >= 1 && mamdani_outputs{i,k}(j) < 2
+                mamdani_outputs{i,k+1}(j,1) = 2;
+            elseif mamdani_outputs{i,k}(j) >= 2 && mamdani_outputs{i,k}(j) < 3
+                mamdani_outputs{i,k+1}(j,1) = 3;
+            else
+                mamdani_outputs{i,k+1}(j,1) = 4;
+            end;
+        end;
+        % Clean the filtered output vectors.
+        mamdani_outputs{i,k+1}(mamdani_outputs{i,k+1}~=i) = 0;
+        mamdani_outputs{i,k+1}(mamdani_outputs{i,k+1}==i) = 1;   
     end;
-    % Clean the filtered output vectors.
-    mamdani_outputs{i,2}(mamdani_outputs{i,2}~=i) = 0;
-    mamdani_outputs{i,2}(mamdani_outputs{i,2}==i) = 1;
     
-    % Compute TPR and FNR.
-    mamdani_perf{i} = struct;
-    mamdani_perf{i}.TPR = sum(pat_targets{1}(i,:)'== ...
-        mamdani_outputs{i,2}) / 40;
-    mamdani_perf{i}.FNR = 1 - mamdani_perf{i}.TPR;
+    for k=1:2
+        % Compute TPR and FNR.
+        mamdani_perf{i,k} = struct;
+        if k==1
+            mamdani_perf{i,k}.TPR = sum(pat_targets{1}(i,:)'== ...
+                mamdani_outputs{i,k*2}) / 40;
+        else
+            mamdani_perf{i,k}.TPR = sum(anfis_test{1,i}(:,5) == ...
+                mamdani_outputs{i,k*2}) / 6;
+        end;
+        mamdani_perf{i,k}.FNR = 1 - mamdani_perf{i,k}.TPR;
+    end;
 end;
 
 %% ******* Four-Class Classifier *******
@@ -562,20 +616,43 @@ for i=1:3
         all_targets{i}(training_indicies{i}')];
 end;
 
-trnOpt = [30 0 0.01 0.9 1.1];
-dispOpt = [NaN NaN NaN NaN];
+trnOpt = [40 0 0.01 0.9 1.1];
+dispOpt = [0 0 0 0];
 
 for k=1:3
     sugeno_fis{k}{5,2} = struct('error',[],'stepsize',[],'chkFis',[],...
         'chkErr',[]);
+%     sugeno_fis{k}{i,1} = genfis1(anfis_train{k,5},3,'pimf', ...
+%             'constant');
     sugeno_fis{k}{5,1} = genfis2(anfis_train{k,5}(:,1:4), ...
-        anfis_train{k,5}(:,5),0.5);
-    % sugeno_fis{5,1} = genfis3(anfis_train{1,5}(:,1:4), ...
-    %     anfis_train{1,5}(:,5),'sugeno');
+        anfis_train{k,5}(:,5),0.3);
+%      sugeno_fis{5,1} = genfis3(anfis_train{k,5}(:,1:4), ...
+%         anfis_train{k,5}(:,5),'sugeno');
     [sugeno_fis{k}{5,1},sugeno_fis{k}{5,2}.error,sugeno_fis{k}{5,2}.stepsize,...
         sugeno_fis{k}{5,2}.chkFis,sugeno_fis{k}{5,2}.chkErr] = ...
         anfis(anfis_train{k,5},sugeno_fis{k}{5,1},trnOpt,dispOpt, ...
         anfis_check{k,5});
+    sugeno_outputs{k}{5,1} = evalfis(anfis_test{k,5}(:,1:4), ...
+            sugeno_fis{k}{5,1});
+        % Filter the outputs.
+        for j=1:3*2^k
+            if  sugeno_outputs{k}{5,1}(j) < 1.5
+                sugeno_outputs{k}{5,2}(j,1) = 1;
+            elseif sugeno_outputs{k}{5,1}(j) >= 1.5 && ...
+                    sugeno_outputs{k}{5,1}(j) < 2.5
+                sugeno_outputs{k}{5,2}(j,1) = 2;
+            elseif sugeno_outputs{k}{5,1}(j) >= 2.5 && ...
+                    sugeno_outputs{k}{5,1}(j) < 3.5
+                sugeno_outputs{k}{5,2}(j,1) = 3;
+            else
+                sugeno_outputs{k}{5,2}(j,1) =4;
+            end;
+        end;
+        % Evaluate the performance.
+        sugeno_perf{k}{5} = struct;
+        sugeno_perf{k}{5}.TPR = sum(anfis_test{k,5}(:,5)== ...
+        sugeno_outputs{k}{5,2}) / (3*2^k);
+        sugeno_perf{k}{5}.FNR = 1 - sugeno_perf{k}{5}.TPR;
 end;
 
 
@@ -585,56 +662,37 @@ load('MamdaniAllvsAll.mat');
 
 mamdani_fis{5} = MamdaniAllvsAll;
 
-mamdani_outputs{5} = evalfis(mamdani_in,mamdani_fis{5});
-for j=1:40
-    if mamdani_outputs{5,1}(j) >= 0 && mamdani_outputs{5,1}(j) < 1
-        mamdani_outputs{5,2}(j,1) = 1;
-    elseif mamdani_outputs{5,1}(j) >= 1 && mamdani_outputs{5,1}(j) < 2
-        mamdani_outputs{5,2}(j,1) = 2;
-    elseif mamdani_outputs{5,1}(j) >= 2 && mamdani_outputs{5,1}(j) < 3
-        mamdani_outputs{5,2}(j,1) = 3;
+mamdani_outputs{5,1} = evalfis(mamdani_in,mamdani_fis{5});
+mamdani_outputs{5,3} = evalfis(mamdani_test,mamdani_fis{5});
+
+for k=1:2:3
+    if k==1
+        last_input = 40;
     else
-        mamdani_outputs{5,2}(j,1) = 4;
+        last_input = 6;
+    end;
+    for j=1:last_input
+        if mamdani_outputs{5,k}(j) >= 0 && mamdani_outputs{5,k}(j) < 1
+            mamdani_outputs{5,k+1}(j,1) = 1;
+        elseif mamdani_outputs{5,k}(j) >= 1 && mamdani_outputs{5,k}(j) < 2
+            mamdani_outputs{5,k+1}(j,1) = 2;
+        elseif mamdani_outputs{5,k}(j) >= 2 && mamdani_outputs{5,k}(j) < 3
+            mamdani_outputs{5,k+1}(j,1) = 3;
+        else
+            mamdani_outputs{5,k+1}(j,1) = 4;
+        end;
     end;
 end;
 
 % Compute TPR and FNR.
-mamdani_perf{5} = struct;
-mamdani_perf{5}.TPR = sum(all_targets{1}==mamdani_outputs{5,2}) / 40;
-mamdani_perf{5}.FNR = 1 - mamdani_perf{5}.TPR;
-
-% % GA optimization trial.
-% 
-% global mamdani;
-% global mamdani_feat;
-% global mamdani_all_targets;
-% 
-% mamdani_feat = [feat_temp{4}{1,1}' feat_temp{5}{1,1}' feat_temp{11}{1,1}' ...
-%     feat_temp{17}{1,1}'];
-% 
-% mamdani_all_targets = [zeros(10,1); ones(10,1); 2*ones(10,1); 3*ones(10,1);];
-% 
-% mamdani = readfis('Mamdani5.fis');
-% 
-% A = [zeros(1,44) -1 -1 -1 -1 0 zeros(1,35);
-%      zeros(1,49) -1 -1 -1 -1 0 zeros(1,30);
-%      zeros(1,54) -1 -1 -1 -1 0 zeros(1,25);
-%      zeros(1,59) -1 -1 -1 -1 0 zeros(1,20);
-%      zeros(1,64) -1 -1 -1 -1 0 zeros(1,15);
-%      zeros(1,69) -1 -1 -1 -1 0 zeros(1,10);
-%      zeros(1,74) -1 -1 -1 -1 0 zeros(1,5);
-%      zeros(1,79) -1 -1 -1 -1 0];
-%  B = [-1; -1; -1; -1; -1; -1; -1; -1];
-% 
-% fitnessFcn = @mamdani_all_fitness;
-% nvar = 84;
-% options = gaoptimset;
-% options = gaoptimset(options,'TolFun', 1e-8, 'Generations', 100, ...
-%     'OutputFcn', @ga_output, ...
-%     'CreationFcn', @gacreationlinearfeasible, ...
-%     'PlotFcns', @gaplotbestf);
-% 
-% [x, fval] = ga(fitnessFcn, nvar, A, B, [], [], ...
-%     [0.001*ones(44,1);zeros(39,1); 1],[Inf*ones(44,1); 3*ones(39,1); 4], [], ...
-%     (45:84),options);
-
+for k=1:2
+    mamdani_perf{5,k} = struct;
+    if k==1
+        mamdani_perf{5,k}.TPR = sum(all_targets{1}== ...
+            mamdani_outputs{5,k*2}) / 40;
+    else
+        mamdani_perf{5,k}.TPR = sum(anfis_test{1,5}(:,5)== ...
+            mamdani_outputs{5,k*2}) / 6;
+    end;
+    mamdani_perf{5,k}.FNR = 1 - mamdani_perf{5,k}.TPR;
+end;
