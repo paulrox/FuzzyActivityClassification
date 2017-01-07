@@ -14,12 +14,27 @@ load('project_workspace');
 
 %% GA plots.
 
+% Independent datasets.
 for i=1:3
     figure;
     plot(pat_nets{i,2}.gen,pat_nets{i,2}.mean,'.b');
     hold on;
     plot(pat_nets{i,2}.gen,pat_nets{i,2}.best,'.k');
+    legend('Mean','Best');
+    xlabel('Generations');
+    ylabel('Fitness fcn value');
+    title(['Features selection for sensor ' num2str(i) ' using GA']);
 end;
+
+% Union of sensor data.
+    figure;
+    plot(pat_union_nets{1,2}.gen,pat_union_nets{1,2}.mean,'.b');
+    hold on;
+    plot(pat_union_nets{1,2}.gen,pat_union_nets{1,2}.best,'.k');
+    legend('Mean','Best');
+    xlabel('Generations');
+    ylabel('Fitness fcn value');
+    title(['Features selection for union of sensor data using GA']);
 %% Sugeno FIS 1 vs. All Plots.
 
 for i=1:4

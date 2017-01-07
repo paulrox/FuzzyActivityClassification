@@ -545,7 +545,8 @@ for k=1:3
             test_perf(j) = sugeno_perf_tmp{j}.TPR;
         end;
         % Find the best FIS structure over the 10 trials.
-        anfis_best = find(test_perf==min(test_perf));
+        anfis_best = find(test_perf==max(test_perf));
+        anfis_best = anfis_best(1);
         sugeno_fis{k}{i,1} = sugeno_tmp{anfis_best,1};
         sugeno_fis{k}{i,2} = sugeno_tmp{anfis_best,2};
         sugeno_outputs{k}{i,1} = sugeno_outputs_tmp{anfis_best,1};
@@ -726,7 +727,8 @@ for k=1:3
         test_perf(j) = sugeno_perf_tmp{j}.TPR;
     end;
     % Find the best FIS structure over the 10 trials.
-    anfis_best = find(test_perf==min(test_perf));
+    anfis_best = find(test_perf==max(test_perf));
+    anfis_best = anfis_best(1);
     sugeno_fis{k}{5,1} = sugeno_tmp{anfis_best,1};
     sugeno_fis{k}{5,2} = sugeno_tmp{anfis_best,2};
     sugeno_outputs{k}{5,1} = sugeno_outputs_tmp{anfis_best,1};
