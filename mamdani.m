@@ -6,6 +6,7 @@ load MamdaniA3vsAll
 load MamdaniA4vsAll
 load feat_temp
 
+
 features_raw = feat_temp;
 
 f1 = 4;

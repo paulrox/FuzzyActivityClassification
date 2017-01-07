@@ -6,8 +6,8 @@
 
 feat_temp = extract_features2(sensor_filtered,1/82e-3)';
 %%
-window = 2;
-feat = 17;
+window = 1;
+feat = 5;
 
 label = 1;
 
@@ -36,4 +36,5 @@ for i=1:1:length(features1)
     
 end
 end
-    
+    title('Average Distance Peaks Feature Distribution')
+   

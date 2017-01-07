@@ -1,7 +1,7 @@
 load data.mat
 load sensor.mat
 
-feat = extract_features2(sensor, 1/82e-3)
+feat = extract_features2(sensor_filtered, 1/82e-3)
 
 %%
 y = data{1,1}(:,1)
@@ -20,14 +20,10 @@ y = y - mean(y);
 
 % apply fast fourier transformation to the signal
 % Next power of 2 from length of averaged rms acceleration
-NFFT = 2 ^ nextpow2(length(y)); 
-freqAccel = fft(y, NFFT) / length(y);
-f = uniformSampleRate / 2 * linspace(0, 1, NFFT + 1);
-
 
 f1 = Fs*(0:(L-1))/L;
 plot(f1,P1)
 
 hold on
 
-plot(f1, freqAccel(1:end - 48))
+plot(f1, y)
