@@ -150,9 +150,9 @@ features_union_TD = extract_union_TD_features(sensor_union);
 % 15: Sum of spectrum components;
 % 16: Number of peak in spectrum;
 % 17: Bandwidth;
-% 18: Average peaks distances;
+% 18: Average peaks distances in power spectral density (PSD);
 % 19: Average power;
-% 20: Average distances in power density signal;
+% 20: Average peaks distances in PSD using Welch's estimator;
 % 21: Average frequency of the 3 peaks with more amplitude;
 % 22: Sum of amplitudes in power density.
 
@@ -328,21 +328,16 @@ pat_confusion = zeros(1,3);
 
 % i-th sensor.
 for i=1:3
-    net_in = [features{pat_nets{i,3}(1)}{t_interval,i};
-              features{pat_nets{i,3}(2)}{t_interval,i};
-              features{pat_nets{i,3}(3)}{t_interval,i};
-              features{pat_nets{i,3}(4)}{t_interval,i}];
+    net_in = [features{pat_nets{i,3}(1)}{1,i};
+              features{pat_nets{i,3}(2)}{1,i};
+              features{pat_nets{i,3}(3)}{1,i};
+              features{pat_nets{i,3}(4)}{1,i}];
     net_out = pat_nets{i,1}(net_in);
-    pat_confusion(i) = confusion(pat_targets{t_interval},net_out);
+    pat_confusion(i) = confusion(pat_targets{1},net_out);
 end;
 
 % The best sensor is the one by which the confusion value is lower.
-% best_sensor = find(pat_confusion==min(pat_confusion));
-
-% In our specific case we choose anyway to use the sensor 1 for the reasons
-% written in the project report.
-
-best_sensor = 1;
+best_sensor = find(pat_confusion==min(pat_confusion));
 
 %% Select the features obtained from the GA (Indipendent datasets)
 % We extract the best features from the best sensor.
@@ -367,14 +362,14 @@ selected_features{3} = selected_tmp{3}(:,best_feat);
 % Same as before, but this time we are considering the union of all the
 % sensors.
 
-net_in = [features_union{pat_union_nets{1,3}(1)}{t_interval_union};
-    features_union{pat_union_nets{1,3}(2)}{t_interval_union};
-    features_union{pat_union_nets{1,3}(3)}{t_interval_union};
-    features_union{pat_union_nets{1,3}(4)}{t_interval_union}];
+net_in = [features_union{pat_union_nets{1,3}(1)}{1};
+    features_union{pat_union_nets{1,3}(2)}{1};
+    features_union{pat_union_nets{1,3}(3)}{1};
+    features_union{pat_union_nets{1,3}(4)}{1}];
 net_out = pat_union_nets{1,1}(net_in);
 
 % Confusion matrix.
-pat_union_confusion = confusion(pat_union_targets{t_interval_union},net_out);
+pat_union_confusion = confusion(pat_union_targets{1},net_out);
 
 best_union_feat = pat_union_nets{1,3};
 selected_union_tmp = cell(3,1);
@@ -475,7 +470,7 @@ end;
 sugeno_fis = cell(1,3);
 % Cell array containing the FIS outputs.
 sugeno_outputs = cell(1,3);
-% Cell array containing the FIS TPR and FNR.
+% Cell array containing the FIS Accuracy and Error Rate.
 sugeno_perf = cell(1,3);
 
 % Anfis training options, defined as: [epoch_num, error_goal,
@@ -537,10 +532,10 @@ for k=1:3
             end;
             % Evaluate the performance.
             sugeno_perf_tmp{j} = struct;
-            sugeno_perf_tmp{j}.TPR = sum(anfis_test{k,i}(:,5)== ...
+            sugeno_perf_tmp{j}.acc = sum(anfis_test{k,i}(:,5)== ...
                 sugeno_outputs_tmp{j,2}) / (3*2^k);
-            sugeno_perf_tmp{j}.FNR = 1 - sugeno_perf_tmp{j}.TPR;
-            test_perf(j) = sugeno_perf_tmp{j}.TPR;
+            sugeno_perf_tmp{j}.err = 1 - sugeno_perf_tmp{j}.acc;
+            test_perf(j) = sugeno_perf_tmp{j}.acc;
         end;
         % Find the best FIS structure over the 10 trials.
         anfis_best = find(test_perf==max(test_perf));
@@ -578,10 +573,10 @@ mamdani_fis{4} = MamdaniA4vsAll;
 mamdani_feat_index = [17 18 10 21];
 
 % Compute the Mamdani FIS inputs.
-mamdani_in = [features_raw{mamdani_feat_index(1),1}{1,1};
-              features_raw{mamdani_feat_index(2),1}{1,1};
-              features_raw{mamdani_feat_index(3),1}{1,1};
-              features_raw{mamdani_feat_index(4),1}{1,1}];
+mamdani_in = [features_raw{mamdani_feat_index(1),1}{1,best_sensor};
+              features_raw{mamdani_feat_index(2),1}{1,best_sensor};
+              features_raw{mamdani_feat_index(3),1}{1,best_sensor};
+              features_raw{mamdani_feat_index(4),1}{1,best_sensor}];
           
 % Compute the Mamdani FIS inputs considering just the inputs which are part
 % of the Sugeno testing set.
@@ -623,18 +618,18 @@ for i=1:4
     end;
     
     for k=1:2
-        % Compute TPR and FNR.
+        % Compute Accuracy and Error Rate.
         mamdani_perf{i,k} = struct;
         if k==1
             % Whole dataset.
-            mamdani_perf{i,k}.TPR = sum(pat_targets{1}(i,:)'== ...
+            mamdani_perf{i,k}.acc = sum(pat_targets{1}(i,:)'== ...
                 mamdani_outputs{i,k*2}) / 40;
         else
             % Testing set.
-            mamdani_perf{i,k}.TPR = sum(anfis_test{1,i}(:,5) == ...
+            mamdani_perf{i,k}.acc = sum(anfis_test{1,i}(:,5) == ...
                 mamdani_outputs{i,k*2}) / 6;
         end;
-        mamdani_perf{i,k}.FNR = 1 - mamdani_perf{i,k}.TPR;
+        mamdani_perf{i,k}.err = 1 - mamdani_perf{i,k}.acc;
     end;
 end;
 
@@ -721,10 +716,10 @@ for k=1:3
         end;
         % Evaluate the performance.
         sugeno_perf_tmp{j} = struct;
-        sugeno_perf_tmp{j}.TPR = sum(anfis_test{k,5}(:,5)== ...
+        sugeno_perf_tmp{j}.acc = sum(anfis_test{k,5}(:,5)== ...
             sugeno_outputs_tmp{j,2}) / (3*2^k);
-        sugeno_perf_tmp{j}.FNR = 1 - sugeno_perf_tmp{j}.TPR;
-        test_perf(j) = sugeno_perf_tmp{j}.TPR;
+        sugeno_perf_tmp{j}.err = 1 - sugeno_perf_tmp{j}.acc;
+        test_perf(j) = sugeno_perf_tmp{j}.acc;
     end;
     % Find the best FIS structure over the 10 trials.
     anfis_best = find(test_perf==max(test_perf));
@@ -770,17 +765,17 @@ for k=1:2:3
     end;
 end;
 
-% Compute TPR and FNR.
+% Compute Accuracy and Error Rate.
 for k=1:2
     mamdani_perf{5,k} = struct;
     if k==1
         % Whole dataset.
-        mamdani_perf{5,k}.TPR = sum(all_targets{1}== ...
+        mamdani_perf{5,k}.acc = sum(all_targets{1}== ...
             mamdani_outputs{5,k*2}) / 40;
     else
         % Testing dataset.
-        mamdani_perf{5,k}.TPR = sum(anfis_test{1,5}(:,5)== ...
+        mamdani_perf{5,k}.acc = sum(anfis_test{1,5}(:,5)== ...
             mamdani_outputs{5,k*2}) / 6;
     end;
-    mamdani_perf{5,k}.FNR = 1 - mamdani_perf{5,k}.TPR;
+    mamdani_perf{5,k}.err = 1 - mamdani_perf{5,k}.acc;
 end;

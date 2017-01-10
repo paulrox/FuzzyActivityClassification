@@ -14,9 +14,9 @@ load('project_workspace');
 %% Signal plots
 
 % Original signal.
-plot(timestamps{1}(:,1),sensor_raw{1,1}(:,1));
+plot(timestamps{1}(:,11),sensor_raw{1,1}(:,11));
 hold on;
-plot(timestamps{1}(:,1),sensor{1,1}(:,1));
+plot(timestamps{1}(:,11),sensor{1,1}(:,11));
 %% GA plots
 
 % Independent datasets.
