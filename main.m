@@ -28,7 +28,7 @@ sensor_raw = cell(3,3);
 for i=1:4
     % i-th activity.
     for j=1:10
-        % Time interval: 162 seconds.
+        % Time interval: 164 seconds.
         sensor_raw{1,1} = [sensor_raw{1,1} data{i,j}(:,1)];
         sensor_raw{1,2} = [sensor_raw{1,2} data{i,j}(:,2)];
         sensor_raw{1,3} = [sensor_raw{1,3} data{i,j}(:,3)];
@@ -73,7 +73,7 @@ for i=1:4
     for k=1:3
         % j-th volunteer.
         for j=1:10
-            % Time interval: 162 seconds.
+            % Time interval: 164 seconds.
             sensor_union_raw{1} = [sensor_union_raw{1} data{i,j}(:,k)];
             
             % Time interval: 82 seconds.
@@ -205,11 +205,7 @@ end;
 
 global pat_targets;
 global pat_union_targets;
-global t_interval;
-global t_interval_union;
 
-t_interval = 1;
-t_interval_union = 1;
 % Targets for the patternet training.
 pat_targets = cell(3,1);
 pat_union_targets = cell(3,1);
@@ -237,7 +233,7 @@ end;
 % global pat_nets;
 % global sens_num;
 % global history;
-
+% 
 % history = struct;
 % pat_nets = cell(3,3);
 % 
@@ -504,6 +500,7 @@ for k=1:3
         % Generate the Sugeno FIS structure.
         sugeno_fis{k}{i,1} = genfis1(anfis_train{k,i},3,'pimf', ...
             'constant');
+        sugeno_fis{k}{i,1}.name = ['sug_A' num2str(i) 'vsAll'];
         %         sugeno_fis{k}{i,1} = genfis2(anfis_train{k,i}(:,1:4), ...
         %             anfis_train{k,i}(:,5),0.3);
         %         sugeno_fis{5,1} = genfis3(anfis_train{k,i}(:,1:4), ...
@@ -524,7 +521,8 @@ for k=1:3
                 sugeno_fis{k}{i,2}.chkFis,sugeno_fis{k}{i,2}.chkErr] = ...
                 anfis(anfis_train{k,i},sugeno_fis{k}{i,1},trnOpt,dispOpt, ...
                 anfis_check{k,i});
-            sugeno_tmp{j,1} = sugeno_fis{k}{i,1};
+            % We use the checking FIS to avoid overfitting.
+            sugeno_tmp{j,1} = sugeno_fis{k}{i,2}.chkFis;
             sugeno_tmp{j,2} = sugeno_fis{k}{i,2};
             % Compute the FIS outputs.
             sugeno_outputs_tmp{j,1} = evalfis(anfis_test{k,i}(:,1:4), ...
@@ -685,6 +683,7 @@ for k=1:3
     % Generate the FIS structure.
     sugeno_fis{k}{5,1} = genfis2(anfis_train{k,5}(:,1:4), ...
         anfis_train{k,5}(:,5),0.3);
+    sugeno_fis{k}{5,1}.name = 'sug_4class';
     %      sugeno_fis{5,1} = genfis3(anfis_train{k,5}(:,1:4), ...
     %         anfis_train{k,5}(:,5),'sugeno');
     % Prepare temporary data structure.
@@ -700,7 +699,8 @@ for k=1:3
             sugeno_fis{k}{5,2}.chkFis,sugeno_fis{k}{5,2}.chkErr] = ...
             anfis(anfis_train{k,5},sugeno_fis{k}{5,1},trnOpt,dispOpt, ...
             anfis_check{k,5});
-        sugeno_tmp{j,1} = sugeno_fis{k}{5,1};
+        % We use the checking FIS to avoid overfitting.
+        sugeno_tmp{j,1} = sugeno_fis{k}{5,2}.chkFis;
         sugeno_tmp{j,2} = sugeno_fis{k}{5,2};
         % Compute the FIS outputs.
         sugeno_outputs_tmp{j,1} = evalfis(anfis_test{k,5}(:,1:4), ...

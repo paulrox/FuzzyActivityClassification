@@ -11,8 +11,13 @@ clearvars; clc; close all;
 % Load the workspace.
 load('project_workspace');
 
+%% Signal plots
 
-%% GA plots.
+% Original signal.
+plot(timestamps{1}(:,1),sensor_raw{1,1}(:,1));
+hold on;
+plot(timestamps{1}(:,1),sensor{1,1}(:,1));
+%% GA plots
 
 % Independent datasets.
 for i=1:3
@@ -34,8 +39,8 @@ end;
     legend('Mean','Best');
     xlabel('Generations');
     ylabel('Fitness fcn value');
-    title(['Features selection for union of sensor data using GA']);
-%% Sugeno FIS 1 vs. All Plots.
+    title('Features selection for union of sensor data using GA');
+%% Sugeno FIS 1 vs. All Plots
 
 for i=1:4
     % Cheking error.
@@ -64,25 +69,25 @@ for i=1:4
     legend('FIS output', 'Target', 'Filtered output');
 end;
 
-%% Sugeno FIS All vs. All Plots.
+%% Sugeno FIS All vs. All Plots
 
 figure;
 plot(sugeno_fis{1}{5,2}.chkErr);
-title(['Sugeno FIS Checking Error Activity ' num2str(i) ' vs. All']);
+title('Sugeno FIS Checking Error Four-Class');
 xlabel('Epoch');
 ylabel('Error');
 
 % Training error.
 figure;
 plot(sugeno_fis{1}{5,2}.error);
-title(['Sugeno FIS Training Error Activity ' num2str(i) ' vs. All']);
+title('Sugeno FIS Training Error Four-Class');
 xlabel('Epoch');
 ylabel('Error');
 
 % Testing error.
 figure;
 plot(sugeno_outputs{1}{5,1}, '*r');
-title(['Sugeno FIS Output Error Activity ' num2str(i) ' vs. All']);
+title('Sugeno FIS Output Error Four-Class');
 xlabel('Input Number');
 ylabel('Value');
 hold on;
