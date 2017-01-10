@@ -94,3 +94,38 @@ hold on;
 plot(anfis_test{1,5}(:,5), 'ob');
 plot(sugeno_outputs{1}{5,2}, 'xk');
 legend('FIS output', 'Target', 'Filtered output');
+
+%% Plot features
+% It is possible to plot different features change the feat variable. 
+% It is also possible to plot with different intervals of time changing 
+% the variable window.
+
+feat_temp = features_raw;
+
+window = 1;
+feat = 5;
+
+label = 1;
+
+
+for sensor=2:3
+    features1 = add_label(feat_temp{feat, 1}{window, sensor}, label);
+    plot(features1(1,1), features1(2,1));
+    
+    hold on
+    grid on
+    for i=1:length(features1)
+        if (features1(2,i) == 1)
+            plot(features1(1,i), features1(2,i), 'k*');
+        end;
+        if (features1(2,i) == 2)
+            plot(features1(1,i), features1(2,i), 'bo');
+        end;
+        if (features1(2,i) == 3)
+            plot(features1(1,i), features1(2,i), 'gx');
+        end;
+        if (features1(2,i) == 4)
+            plot(features1(1,i), features1(2,i), 'rs');
+        end;
+    end;
+end;
